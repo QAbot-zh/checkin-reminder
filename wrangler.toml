@@ -1,0 +1,19 @@
+name = "checkin-reminder"
+main = "src/worker.js"
+compatibility_date = "2024-11-01"
+
+# 如果你希望每天 00:00 UTC 做一次清理（可选）
+[triggers]
+crons = ["0 0 * * *"]
+
+# 绑定 D1 数据库（创建后把实际的 database_name / database_id 写进来）
+[[d1_databases]]
+binding = "DB"
+database_name = "checkin-reminder"
+database_id = "Your-D1-Database-ID"
+
+[vars]
+# 站点逻辑使用的时区，用于计算“今天”这一天
+TIMEZONE = "Asia/Shanghai"
+# 历史签到保留天数（cron 清理用）
+RETENTION_DAYS = "30"
