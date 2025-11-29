@@ -317,6 +317,16 @@ const INDEX_HTML = `<!doctype html>
       align-items: center;
       gap: 12px;
     }
+
+    /* 移动端标题优化 */
+    @media (max-width: 640px) {
+      .header-actions {
+        gap: 6px;
+      }
+      #topBar h1 {
+        max-width: calc(100vw - 180px);
+      }
+    }
     
     .divider {
       height: 2px;
@@ -326,9 +336,14 @@ const INDEX_HTML = `<!doctype html>
     }
     
     @media (max-width: 640px) {
-      h1 { font-size: 28px; }
-      .icon-btn { width: 48px; height: 48px; }
+      h1 { font-size: 22px; }
+      .icon-btn { width: 40px; height: 40px; }
       .btn { padding: 10px 18px; font-size: 15px; }
+
+      /* 移动端汇总栏优化 */
+      .header-actions { gap: 8px; }
+      .icon-btn svg { width: 20px; height: 20px; }
+      #topBar .flex-wrap { gap: 8px; }
     }
     /* ===== Mobile Collapsible ===== */
     @media (max-width: 640px) {
@@ -337,8 +352,46 @@ const INDEX_HTML = `<!doctype html>
 
       /* 顶部卡片：收起时压缩内边距、字号，隐藏副标题行 */
       #topBar.is-collapsed .card { padding-top: 10px !important; padding-bottom: 10px !important; }
-      #topBar.is-collapsed h1 { font-size: 20px; }
+      #topBar.is-collapsed h1 { font-size: 18px; }
       #topBar.is-collapsed #today { display: none; }
+
+      /* 筛选卡片：收起时压缩内边距 */
+      #filters.is-collapsed .card { padding-top: 8px !important; padding-bottom: 8px !important; }
+
+      /* 移动端优化：筛选区域可滚动 */
+      #filtersBody {
+        max-height: 60vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* 移动端分组选择器优化 */
+      #groupSelect {
+        min-width: 0;
+        width: auto;
+      }
+      #clearFilters {
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+      /* 移动端分组标签和下拉列表同行显示 */
+      @media (max-width: 640px) {
+        .group-select-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
+          min-width: 0;
+        }
+        #groupSelect {
+          min-width: 80px;
+          max-width: 160px;
+        }
+      }
+
+      /* 移动端小屏幕优化 */
+      .sticky-filters { top: calc(var(--topBarH, 0px) + 8px); }
+      .sticky-top { top: 0; }
     }
 
     /* 小小的图标旋转过渡（箭头指示开/合） */
@@ -350,21 +403,21 @@ const INDEX_HTML = `<!doctype html>
 <body>
   <div class="max-w-6xl mx-auto p-4 sm:p-6">
     <header id="topBar" class="mb-8 sticky-top">
-      <div class="card p-6 sm:p-8">
-        <div class="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 class="font-extrabold">每日签到汇总</h1>
+      <div class="card p-4 sm:p-6">
+        <div class="flex items-center justify-between gap-2 sm:gap-4">
+          <div class="min-w-0 flex-1">
+            <h1 class="font-extrabold text-ellipsis overflow-hidden whitespace-nowrap">每日签到汇总</h1>
             <div id="today" class="text-base mt-2" style="color: var(--text-secondary)">加载中...</div>
           </div>
-          <div class="header-actions">
+          <div class="header-actions flex-shrink-0">
             <button id="undoBtn" class="hidden btn btn-ghost">重置刚才的签到</button>
             <button id="openAdminModal" class="icon-btn" title="管理口令">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
             </button>
             <button id="openAddModal" class="icon-btn" title="新增签到项">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
               </svg>
             </button>
@@ -390,10 +443,10 @@ const INDEX_HTML = `<!doctype html>
     </header>
 
     <!-- 筛选 -->
-    <section id="filters" class="mb-6 card p-6 sm:p-8 sticky-filters">
+    <section id="filters" class="mb-6 card p-4 sm:p-6 sticky-filters">
       <div class="flex items-center justify-between mb-2 sm:hidden">
-        <span class="text-base font-semibold" style="color: var(--text-secondary)">筛选</span>
-        <button id="collapseFiltersBtn" class="icon-btn" style="width:40px;height:40px" title="收起/展开筛选" aria-expanded="true">
+        <span class="text-sm font-semibold" style="color: var(--text-secondary)">筛选</span>
+        <button id="collapseFiltersBtn" class="icon-btn" style="width:32px;height:32px" title="收起/展开筛选" aria-expanded="true">
           <svg id="chevFilters" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
@@ -401,27 +454,29 @@ const INDEX_HTML = `<!doctype html>
       </div>
       <div id="filtersBody" class="collapse-body">
         <div class="grid gap-5">
-          <div class="flex flex-col sm:flex-row gap-4 sm:items-center">
-            <label class="text-base font-semibold shrink-0" style="color: var(--text-secondary)">分组：</label>
-            <select id="groupSelect" class="w-full sm:max-w-xs">
-              <option value="">全部分组</option>
-              <option value="__unchecked__">仅未签到</option>
-            </select>
-            <button id="clearFilters" class="btn btn-ghost">清空筛选</button>
+          <div class="flex flex-wrap gap-2 sm:gap-3 sm:items-center">
+            <div class="group-select-wrapper">
+              <label class="text-sm font-semibold shrink-0" style="color: var(--text-secondary)">分组：</label>
+              <select id="groupSelect" class="flex-1 min-w-0 sm:max-w-xs">
+                <option value="">全部分组</option>
+                <option value="__unchecked__">仅未签到</option>
+              </select>
+            </div>
+            <button id="clearFilters" class="btn btn-ghost shrink-0 px-3 py-2 text-sm">清空</button>
           </div>
           <div>
             <div class="flex items-center justify-between mb-4">
-              <span class="text-base font-semibold" style="color: var(--text-secondary)">标签筛选</span>
+              <span class="text-sm font-semibold" style="color: var(--text-secondary)">标签筛选</span>
             </div>
-            <div class="mb-4">
+            <div class="mb-4 max-h-40 overflow-y-auto">
               <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-semibold" style="color: var(--text-secondary)">包含标签（AND 逻辑）：</span>
+                <span class="text-xs font-semibold" style="color: var(--text-secondary)">包含标签：</span>
               </div>
               <div id="tagChips" class="flex flex-wrap gap-3"></div>
             </div>
-            <div>
+            <div class="max-h-40 overflow-y-auto">
               <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-semibold" style="color: var(--text-secondary)">排除标签（NOT 逻辑）：</span>
+                <span class="text-xs font-semibold" style="color: var(--text-secondary)">排除标签：</span>
               </div>
               <div id="excludeTagChips" class="flex flex-wrap gap-3"></div>
             </div>
