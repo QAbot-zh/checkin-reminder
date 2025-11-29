@@ -72,6 +72,12 @@ const INDEX_HTML = `<!doctype html>
     /* 让粘顶区块滚动时不透明叠在内容之上 */
     .sticky-top, .sticky-filters{ backdrop-filter: none; }
 
+    /* Disable sticky positioning when modal is open */
+    body.modal-open .sticky-top,
+    body.modal-open .sticky-filters {
+      position: static !important;
+    }
+
     .card {
       background: var(--bg-card);
       border: 2px solid var(--border);
@@ -107,6 +113,17 @@ const INDEX_HTML = `<!doctype html>
       background: var(--accent);
       color: white;
       border-color: var(--accent);
+    }
+
+    .chip.exclude {
+      background: #dc2626;
+      color: white;
+      border-color: #dc2626;
+    }
+
+    .chip.exclude:hover {
+      background: #b91c1c;
+      border-color: #b91c1c;
     }
     
     .chip-removable {
@@ -394,9 +411,20 @@ const INDEX_HTML = `<!doctype html>
           </div>
           <div>
             <div class="flex items-center justify-between mb-4">
-              <span class="text-base font-semibold" style="color: var(--text-secondary)">标签（多选，逻辑：且 AND）</span>
+              <span class="text-base font-semibold" style="color: var(--text-secondary)">标签筛选</span>
             </div>
-            <div id="tagChips" class="flex flex-wrap gap-3"></div>
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-semibold" style="color: var(--text-secondary)">包含标签（AND 逻辑）：</span>
+              </div>
+              <div id="tagChips" class="flex flex-wrap gap-3"></div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-semibold" style="color: var(--text-secondary)">排除标签（NOT 逻辑）：</span>
+              </div>
+              <div id="excludeTagChips" class="flex flex-wrap gap-3"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -475,6 +503,10 @@ const INDEX_HTML = `<!doctype html>
           <div class="tag-input-wrapper" id="editTagsWrapper">
             <input id="editTagInput" type="text" placeholder="输入标签后按 Enter" />
           </div>
+          <div class="mt-3">
+            <span class="text-sm font-semibold" style="color: var(--text-secondary)">所有标签（点击插入）：</span>
+            <div id="editTagSuggestions" class="flex flex-wrap gap-2 mt-2"></div>
+          </div>
         </div>
         <div class="sm:col-span-2 flex justify-end gap-3 mt-2">
           <button type="button" id="editCancel" class="btn btn-ghost">取消</button>
@@ -510,15 +542,25 @@ const INDEX_HTML = `<!doctype html>
       allTags: [],
       selectedGroup: '',
       selectedTags: [],
+      excludedTags: [],
       lastAutoCheckinId: null,
       addTags: [],
       editTags: [],
       clicks: {},
       collapseHeader: JSON.parse(localStorage.getItem('collapseHeader') || 'false'),
       collapseFilters: JSON.parse(localStorage.getItem('collapseFilters') || 'true'),
+      modalOpen: false,
     };
 
     
+    function setModalOpen(isOpen) {
+      state.modalOpen = isOpen;
+      document.body.classList.toggle('modal-open', isOpen);
+      if (!isOpen) {
+        updateStickyOffsets();
+      }
+    }
+
     function updateStickyOffsets(){
         const h = $('#topBar')?.offsetHeight || 0;
         document.documentElement.style.setProperty('--topBarH', h + 'px');
@@ -531,6 +573,10 @@ const INDEX_HTML = `<!doctype html>
       bindEvents();
       applyCollapse(); // 初始化根据本地状态应用折叠
       window.addEventListener('resize', applyCollapse); // 横竖屏/断点切换时同步
+
+      // Initialize modal state
+      setModalOpen(false);
+
       await loadToday();
       gcLocalClicks({ retentionDays: 10, maxDays: 30 });
       await verifyAdminToken();
@@ -601,8 +647,8 @@ const INDEX_HTML = `<!doctype html>
       };
 
       // 弹窗控制
-      $('#openAdminModal').onclick = () => $('#adminModal').style.display = 'flex';
-      $('#closeAdminModal').onclick = () => $('#adminModal').style.display = 'none';
+      $('#openAdminModal').onclick = () => { $('#adminModal').style.display = 'flex'; setModalOpen(true); };
+      $('#closeAdminModal').onclick = () => { $('#adminModal').style.display = 'none'; setModalOpen(false); };
       $('#openAddModal').onclick = () => {
         if (!state.adminOK) { alert('请先点击右上角🔒输入并保存正确的管理口令'); return; }
         state.addTags = [];
@@ -610,13 +656,17 @@ const INDEX_HTML = `<!doctype html>
         $('#addForm').reset();
         $('#addMsg').textContent = '';
         $('#addModal').style.display = 'flex';
+        setModalOpen(true);
       };
-      $('#closeAddModal').onclick = () => $('#addModal').style.display = 'none';
+      $('#closeAddModal').onclick = () => { $('#addModal').style.display = 'none'; setModalOpen(false); };
 
       // 点击遮罩关闭
       ['#adminModal', '#addModal', '#editModal'].forEach(id => {
         $(id).onclick = (e) => {
-          if (e.target === $(id)) $(id).style.display = 'none';
+          if (e.target === $(id)) {
+            $(id).style.display = 'none';
+            setModalOpen(false);
+          }
         };
       });
 
@@ -633,6 +683,7 @@ const INDEX_HTML = `<!doctype html>
         if (v) localStorage.setItem('adminToken', v);
         else localStorage.removeItem('adminToken');
         $('#adminModal').style.display = 'none';
+        setModalOpen(false);
         await verifyAdminToken();
         if (state.adminOK) { await loadMeta(); await loadEntries(); renderFilters(); }
         render();
@@ -643,6 +694,7 @@ const INDEX_HTML = `<!doctype html>
         state.adminOK = false;
         localStorage.removeItem('adminToken');
         $('#adminModal').style.display = 'none';
+        setModalOpen(false);
         updateAdminUI();
         render();
       };
@@ -696,7 +748,7 @@ const INDEX_HTML = `<!doctype html>
           await loadMeta(); await loadEntries(); renderFilters(); render();
           $('#addMsg').textContent = '✅ 已添加';
           $('#addMsg').style.color = '#16a34a';
-          setTimeout(() => $('#addModal').style.display = 'none', 1500);
+          setTimeout(() => { $('#addModal').style.display = 'none'; setModalOpen(false); }, 1500);
         } catch (err) {
           $('#addMsg').textContent = '❌ 添加失败：' + err.message;
           $('#addMsg').style.color = '#dc2626';
@@ -704,9 +756,10 @@ const INDEX_HTML = `<!doctype html>
       });
 
       $('#clearFilters').onclick = async () => {
-        state.selectedGroup = ''; state.selectedTags = [];
+        state.selectedGroup = ''; state.selectedTags = []; state.excludedTags = [];
         $('#groupSelect').value = '';
         $$('#tagChips .chip').forEach(ch => ch.classList.remove('active'));
+        $$('#excludeTagChips .chip').forEach(ch => ch.classList.remove('active'));
         await loadEntries(); render();
       };
 
@@ -831,6 +884,7 @@ const INDEX_HTML = `<!doctype html>
         params.set('group', state.selectedGroup);
       }
       if (state.selectedTags.length) params.set('tags', state.selectedTags.join(','));
+      if (state.excludedTags.length) params.set('excludeTags', state.excludedTags.join(','));
       const res = await fetch('/api/entries' + (params.toString() ? ('?' + params) : ''), {
         headers: { 'X-Admin-Token': state.adminToken }
       });
@@ -851,6 +905,7 @@ const INDEX_HTML = `<!doctype html>
       sel.onchange = async () => { state.selectedGroup = sel.value; await loadEntries(); render(); };
 
       const wrap = $('#tagChips'); wrap.innerHTML = '';
+      const excludeWrap = $('#excludeTagChips'); excludeWrap.innerHTML = '';
       state.allTags.forEach(t => {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'chip'; b.textContent = t;
@@ -858,9 +913,21 @@ const INDEX_HTML = `<!doctype html>
         b.onclick = async () => {
           const i = state.selectedTags.indexOf(t);
           if (i >= 0) state.selectedTags.splice(i, 1); else state.selectedTags.push(t);
-          b.classList.toggle('active'); await loadEntries(); render();
+          b.classList.toggle('active');
+          await loadEntries(); render();
         };
         wrap.appendChild(b);
+
+        const excludeB = document.createElement('button');
+        excludeB.type = 'button'; excludeB.className = 'chip'; excludeB.textContent = t;
+        if (state.excludedTags.includes(t)) excludeB.classList.add('exclude');
+        excludeB.onclick = async () => {
+          const i = state.excludedTags.indexOf(t);
+          if (i >= 0) state.excludedTags.splice(i, 1); else state.excludedTags.push(t);
+          excludeB.classList.toggle('exclude');
+          await loadEntries(); render();
+        };
+        excludeWrap.appendChild(excludeB);
       });
     }
 
@@ -995,27 +1062,62 @@ const INDEX_HTML = `<!doctype html>
     }
 
     function openEditModal(item) {
-      if (!state.adminOK) { 
-        alert('请先点击 🔒 图标输入并保存管理口令'); 
-        return; 
+      if (!state.adminOK) {
+        alert('请先点击 🔒 图标输入并保存管理口令');
+        return;
       }
-      const mask = $('#editModal'); 
+      const mask = $('#editModal');
       const form = $('#editForm');
       form.id.value = item.id;
       form.name.value = item.name || '';
       form.signUrl.value = item.sign_url || '';
       form.redeemUrl.value = item.redeem_url || '';
       form.groupName.value = item.group_name || '';
-      
+
       state.editTags = [...(item.tags || [])];
       renderTagInput('editTagsWrapper', 'editTags');
-      
+      renderEditTagSuggestions();
+
       mask.style.display = 'flex';
+      setModalOpen(true);
     }
     
-    function closeEditModal() { 
-      $('#editModal').style.display = 'none'; 
+    function closeEditModal() {
+      $('#editModal').style.display = 'none';
+      setModalOpen(false);
       state.editTags = [];
+    }
+    function renderEditTagSuggestions() {
+      const suggestionsContainer = $('#editTagSuggestions');
+      suggestionsContainer.innerHTML = '';
+
+      if (!state.allTags || state.allTags.length === 0) return;
+
+      state.allTags.forEach(tag => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.textContent = tag;
+
+        if (state.editTags.includes(tag)) {
+          chip.classList.add('active');
+        }
+
+        chip.onclick = () => {
+          if (state.editTags.includes(tag)) {
+            const index = state.editTags.indexOf(tag);
+            if (index > -1) {
+              state.editTags.splice(index, 1);
+            }
+          } else {
+            state.editTags.push(tag);
+          }
+          renderTagInput('editTagsWrapper', 'editTags');
+          renderEditTagSuggestions();
+        };
+
+        suggestionsContainer.appendChild(chip);
+      });
     }
     
     async function onEditSubmit(e) {
@@ -1168,6 +1270,12 @@ function includesAllTags(rowTags, filterTags) {
   const set = new Set(rowTags);
   return filterTags.every(t => set.has(t));
 }
+function excludesAnyTags(rowTags, excludeTags) {
+  if (!excludeTags?.length) return true;
+  if (!rowTags?.length) return true;
+  const set = new Set(rowTags);
+  return !excludeTags.some(t => set.has(t));
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -1205,6 +1313,7 @@ export default {
       const today = ymdInTZ(new Date(), tz);
       const group = (url.searchParams.get("group") || "").trim();
       const filterTags = normalizeTags(url.searchParams.get("tags") || "");
+      const excludeTags = normalizeTags(url.searchParams.get("excludeTags") || "");
 
       const base = `
         SELECT e.id, e.name, e.sign_url, e.redeem_url, e.group_name, e.tags,
@@ -1220,7 +1329,7 @@ export default {
 
       const filtered = (results || []).filter(row => {
         const rowTags = parseTagsFromRow(row.tags);
-        return includesAllTags(rowTags, filterTags);
+        return includesAllTags(rowTags, filterTags) && excludesAnyTags(rowTags, excludeTags);
       }).map(row => ({ ...row, tags: parseTagsFromRow(row.tags) }));
 
       return json(filtered);
