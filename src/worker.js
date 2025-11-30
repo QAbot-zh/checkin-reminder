@@ -813,9 +813,7 @@ const INDEX_HTML = `<!doctype html>
       $('#clearFilters').onclick = async () => {
         state.selectedGroup = ''; state.selectedTags = []; state.excludedTags = [];
         $('#groupSelect').value = '';
-        $$('#tagChips .chip').forEach(ch => ch.classList.remove('active'));
-        $$('#excludeTagChips .chip').forEach(ch => ch.classList.remove('active'));
-        await loadEntries(); render();
+        await loadEntries(); renderFilters(); render();
       };
 
       // 编辑弹窗
@@ -964,22 +962,48 @@ const INDEX_HTML = `<!doctype html>
       state.allTags.forEach(t => {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'chip'; b.textContent = t;
+        b.setAttribute('chip-tag', t);
         if (state.selectedTags.includes(t)) b.classList.add('active');
         b.onclick = async () => {
           const i = state.selectedTags.indexOf(t);
-          if (i >= 0) state.selectedTags.splice(i, 1); else state.selectedTags.push(t);
-          b.classList.toggle('active');
+          if (i >= 0) {
+            state.selectedTags.splice(i, 1);
+            b.classList.remove('active');
+          } else {
+            state.selectedTags.push(t);
+            b.classList.add('active');
+            // 互斥逻辑：如果在包含标签中选择，则从排除标签中移除
+            const excludeIndex = state.excludedTags.indexOf(t);
+            if (excludeIndex >= 0) {
+              state.excludedTags.splice(excludeIndex, 1);
+              const excludeChip = $('#excludeTagChips').querySelector('[chip-tag="' + t + '"]');
+              if (excludeChip) excludeChip.classList.remove('exclude');
+            }
+          }
           await loadEntries(); render();
         };
         wrap.appendChild(b);
 
         const excludeB = document.createElement('button');
         excludeB.type = 'button'; excludeB.className = 'chip'; excludeB.textContent = t;
+        excludeB.setAttribute('chip-tag', t);
         if (state.excludedTags.includes(t)) excludeB.classList.add('exclude');
         excludeB.onclick = async () => {
           const i = state.excludedTags.indexOf(t);
-          if (i >= 0) state.excludedTags.splice(i, 1); else state.excludedTags.push(t);
-          excludeB.classList.toggle('exclude');
+          if (i >= 0) {
+            state.excludedTags.splice(i, 1);
+            excludeB.classList.remove('exclude');
+          } else {
+            state.excludedTags.push(t);
+            excludeB.classList.add('exclude');
+            // 互斥逻辑：如果在排除标签中选择，则从包含标签中移除
+            const includeIndex = state.selectedTags.indexOf(t);
+            if (includeIndex >= 0) {
+              state.selectedTags.splice(includeIndex, 1);
+              const includeChip = $('#tagChips').querySelector('[chip-tag="' + t + '"]');
+              if (includeChip) includeChip.classList.remove('active');
+            }
+          }
           await loadEntries(); render();
         };
         excludeWrap.appendChild(excludeB);
