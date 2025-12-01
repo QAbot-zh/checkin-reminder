@@ -445,7 +445,14 @@ const INDEX_HTML = `<!doctype html>
     <!-- 筛选 -->
     <section id="filters" class="mb-6 card p-4 sm:p-6 sticky-filters">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-sm font-semibold" style="color: var(--text-secondary)">筛选</span>
+        <div class="group-select-wrapper flex items-center gap-2 flex-1">
+          <label class="text-base font-bold shrink-0" style="color: var(--text-primary)">分组：</label>
+          <select id="groupSelect" class="flex-1 min-w-0 sm:max-w-xs">
+            <option value="">全部分组</option>
+            <option value="__unchecked__">仅未签到</option>
+          </select>
+          <button id="clearFilters" class="btn btn-ghost shrink-0 px-3 py-2 text-sm ml-2">清空</button>
+        </div>
         <button id="collapseFiltersBtn" class="icon-btn" style="width:32px;height:32px" title="收起/展开筛选" aria-expanded="true">
           <svg id="chevFilters" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polyline points="6 9 12 15 18 9"></polyline>
@@ -454,16 +461,6 @@ const INDEX_HTML = `<!doctype html>
       </div>
       <div id="filtersBody" class="collapse-body">
         <div class="grid gap-5">
-          <div class="flex flex-wrap gap-2 sm:gap-3 sm:items-center">
-            <div class="group-select-wrapper">
-              <label class="text-sm font-semibold shrink-0" style="color: var(--text-secondary)">分组：</label>
-              <select id="groupSelect" class="flex-1 min-w-0 sm:max-w-xs">
-                <option value="">全部分组</option>
-                <option value="__unchecked__">仅未签到</option>
-              </select>
-            </div>
-            <button id="clearFilters" class="btn btn-ghost shrink-0 px-3 py-2 text-sm">清空</button>
-          </div>
           <div>
             <div class="flex items-center justify-between mb-4">
               <span class="text-sm font-semibold" style="color: var(--text-secondary)">标签筛选</span>
@@ -488,7 +485,7 @@ const INDEX_HTML = `<!doctype html>
     <!-- 列表 -->
     <section class="card p-6 sm:p-8">
       <div class="flex items-center justify-between mb-5">
-        <h2>我的签到项</h2>
+        <h2 class="text-base font-bold" style="color: var(--text-primary)">我的签到项</h2>
         <button id="refreshBtn" class="btn btn-ghost">刷新</button>
       </div>
       <div id="list"></div>
