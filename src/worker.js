@@ -444,7 +444,7 @@ const INDEX_HTML = `<!doctype html>
 
     <!-- 筛选 -->
     <section id="filters" class="mb-6 card p-4 sm:p-6 sticky-filters">
-      <div class="flex items-center justify-between mb-2 sm:hidden">
+      <div class="flex items-center justify-between mb-2">
         <span class="text-sm font-semibold" style="color: var(--text-secondary)">筛选</span>
         <button id="collapseFiltersBtn" class="icon-btn" style="width:32px;height:32px" title="收起/展开筛选" aria-expanded="true">
           <svg id="chevFilters" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -706,7 +706,7 @@ const INDEX_HTML = `<!doctype html>
       $('#closeAdminModal').onclick = () => { $('#adminModal').style.display = 'none'; setModalOpen(false); };
       $('#openAddModal').onclick = () => {
         if (!state.adminOK) { alert('请先点击右上角🔒输入并保存正确的管理口令'); return; }
-        state.addTags = [];
+        state.addTags = ['有效'];
         renderTagInput('addTagsWrapper', 'addTags');
         $('#addForm').reset();
         $('#addMsg').textContent = '';
@@ -859,32 +859,24 @@ const INDEX_HTML = `<!doctype html>
     function applyCollapse() {
       const isMobile = window.matchMedia('(max-width:640px)').matches;
 
-      // 顶部
+      // 顶部 - 只在移动端应用折叠
       const topBar = $('#topBar');
-      const topCard = $('#topBar .card');
       const hb = $('#collapseHeaderBtn');
       if (isMobile) {
         topBar.classList.toggle('is-collapsed', !!state.collapseHeader);
         if (hb) hb.setAttribute('aria-expanded', String(!state.collapseHeader));
       } else {
-        // 桌面强制展开
         topBar.classList.remove('is-collapsed');
         if (hb) hb.setAttribute('aria-expanded', 'true');
       }
 
-      // 筛选
+      // 筛选 - 在所有屏幕尺寸应用折叠
       const filters = $('#filters');
       const fb = $('#collapseFiltersBtn');
       const body = $('#filtersBody');
-      if (isMobile) {
-        filters.classList.toggle('is-collapsed', !!state.collapseFilters);
-        if (body) body.style.display = state.collapseFilters ? 'none' : 'block';
-        if (fb) fb.setAttribute('aria-expanded', String(!state.collapseFilters));
-      } else {
-        filters.classList.remove('is-collapsed');
-        if (body) body.style.display = 'block';
-        if (fb) fb.setAttribute('aria-expanded', 'true');
-      }
+      filters.classList.toggle('is-collapsed', !!state.collapseFilters);
+      if (body) body.style.display = state.collapseFilters ? 'none' : 'block';
+      if (fb) fb.setAttribute('aria-expanded', String(!state.collapseFilters));
 
       // 折叠会改变粘顶高度，需重新计算
       updateStickyOffsets();
