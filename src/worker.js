@@ -398,6 +398,114 @@ const INDEX_HTML = `<!doctype html>
     #chevHeader, #chevFilters { transition: transform .2s ease; }
     [aria-expanded="false"] #chevHeader,
     [aria-expanded="false"] #chevFilters { transform: rotate(-180deg); }
+
+    /* Form layout improvements */
+    .modal form input {
+      width: 100%;
+    }
+
+    /* Group dropdown styling - Enhanced for better visibility */
+    .group-dropdown {
+      max-height: 160px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      z-index: 50;  /* Increased z-index to ensure it's above other elements */
+      background-color: var(--bg-card);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      margin-top: 4px;  /* Add small gap from input */
+    }
+
+    .group-dropdown div {
+      padding: 0.75rem 1rem;  /* Increased padding for better touch targets */
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border);
+      background-color: var(--bg-card);
+      transition: background-color 0.15s ease;  /* Smooth hover transition */
+      line-height: 1.4;  /* Better line height for readability */
+    }
+
+    .group-dropdown div:last-child {
+      border-bottom: none;
+      border-bottom-left-radius: 0.375rem;
+      border-bottom-right-radius: 0.375rem;
+    }
+
+    .group-dropdown div:first-child {
+      border-top-left-radius: 0.375rem;
+      border-top-right-radius: 0.375rem;
+    }
+
+    .group-dropdown div:hover {
+      background-color: var(--bg-secondary);
+    }
+
+    /* Selected item highlighting */
+    .group-dropdown .bg-blue-50 {
+      background-color: var(--accent-light) !important;  /* Use theme accent color */
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .group-dropdown .bg-blue-50:hover {
+      background-color: var(--accent) !important;
+      color: white;
+    }
+
+    /* Clear option styling */
+    .group-dropdown div.text-red-600 {
+      color: #dc2626 !important;
+      border-top: 1px solid var(--border);
+      font-weight: 500;
+    }
+
+    .group-dropdown div.text-red-600:hover {
+      background-color: #fef2f2 !important;
+      color: #dc2626 !important;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .group-dropdown {
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+      }
+
+      .group-dropdown div.text-red-600:hover {
+        background-color: #7f1d1d !important;
+      }
+
+      .group-dropdown .bg-blue-50 {
+        background-color: rgba(224, 122, 95, 0.2) !important;  /* Accent with transparency */
+      }
+
+      .group-dropdown .bg-blue-50:hover {
+        background-color: var(--accent) !important;
+      }
+    }
+
+    /* Animation for smooth appearance */
+    .group-dropdown {
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      transform: translateY(-4px);
+      opacity: 0.95;
+    }
+
+    .group-dropdown:not(.hidden) {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Ensure proper layering and no transparency issues */
+    .relative:has(>>.group-dropdown) {
+      z-index: 50;
+    }
+
+    .group-dropdown {
+      isolation: isolate;  /* Create new stacking context */
+    }
   </style>
 </head>
 <body>
@@ -520,18 +628,40 @@ const INDEX_HTML = `<!doctype html>
   <div id="addModal" class="modal-mask">
     <div class="modal p-6 sm:p-8">
       <h3 class="mb-5">新增签到条目</h3>
-      <form id="addForm" class="grid sm:grid-cols-2 gap-5">
-        <input name="name" required placeholder="名称（必填）" />
-        <input name="signUrl" required placeholder="签到网址（https://...）" />
-        <input name="redeemUrl" placeholder="兑换码网址（可选）" class="sm:col-span-2" />
-        <input name="groupName" placeholder="分组（可选）" />
-        <div class="sm:col-span-2">
-          <label class="text-sm mb-2 block font-semibold" style="color: var(--text-secondary)">标签</label>
-          <div class="tag-input-wrapper" id="addTagsWrapper">
-            <input id="addTagInput" type="text" placeholder="输入标签后按 Enter" />
+      <form id="addForm" class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">名称</label>
+          <input name="name" required placeholder="请输入签到项名称" class="flex-1" />
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">签到网址</label>
+          <input name="signUrl" required placeholder="https://example.com/signin" class="flex-1" />
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">兑换码网址</label>
+          <input name="redeemUrl" placeholder="可选：兑换码或奖励页面网址" class="flex-1" />
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-start gap-3">
+          <label class="text-sm font-semibold w-20 shrink-0 pt-2" style="color: var(--text-secondary)">分组</label>
+          <div class="relative flex-1">
+            <input name="groupName" id="addGroupInput" placeholder="选择或输入分组" autocomplete="off" class="w-full" />
+            <div id="addGroupDropdown" class="group-dropdown absolute top-full left-0 right-0 hidden">
+            </div>
           </div>
         </div>
-        <div class="sm:col-span-2 flex justify-end gap-3 mt-2">
+        <div class="flex flex-col sm:flex-row sm:items-start gap-3">
+          <label class="text-sm font-semibold w-20 shrink-0 pt-2" style="color: var(--text-secondary)">标签</label>
+          <div class="flex-1">
+            <div class="tag-input-wrapper" id="addTagsWrapper">
+              <input id="addTagInput" type="text" placeholder="输入标签后按 Enter" />
+            </div>
+            <div class="mt-3">
+              <span class="text-sm font-semibold" style="color: var(--text-secondary)">所有标签（点击插入）：</span>
+              <div id="addTagSuggestions" class="flex flex-wrap gap-2 mt-2"></div>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
           <button type="button" id="closeAddModal" class="btn btn-ghost">取消</button>
           <button class="btn btn-dark">添加</button>
         </div>
@@ -544,23 +674,41 @@ const INDEX_HTML = `<!doctype html>
   <div id="editModal" class="modal-mask">
     <div class="modal p-6 sm:p-8">
       <h3 class="mb-5">编辑签到项</h3>
-      <form id="editForm" class="grid sm:grid-cols-2 gap-5">
+      <form id="editForm" class="space-y-4">
         <input name="id" type="hidden" />
-        <input name="name" required placeholder="名称（必填）" class="sm:col-span-2" />
-        <input name="signUrl" required placeholder="签到网址（https://...）" class="sm:col-span-2" />
-        <input name="redeemUrl" placeholder="兑换码网址（可选）" class="sm:col-span-2" />
-        <input name="groupName" placeholder="分组（可选）" />
-        <div class="sm:col-span-2">
-          <label class="text-sm mb-2 block font-semibold" style="color: var(--text-secondary)">标签</label>
-          <div class="tag-input-wrapper" id="editTagsWrapper">
-            <input id="editTagInput" type="text" placeholder="输入标签后按 Enter" />
-          </div>
-          <div class="mt-3">
-            <span class="text-sm font-semibold" style="color: var(--text-secondary)">所有标签（点击插入）：</span>
-            <div id="editTagSuggestions" class="flex flex-wrap gap-2 mt-2"></div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">名称</label>
+          <input name="name" required placeholder="请输入签到项名称" class="flex-1" />
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">签到网址</label>
+          <input name="signUrl" required placeholder="https://example.com/signin" class="flex-1" />
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">兑换码网址</label>
+          <input name="redeemUrl" placeholder="可选：兑换码或奖励页面网址" class="flex-1" />
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-start gap-3">
+          <label class="text-sm font-semibold w-20 shrink-0 pt-2" style="color: var(--text-secondary)">分组</label>
+          <div class="relative flex-1">
+            <input name="groupName" id="editGroupInput" placeholder="选择或输入分组" autocomplete="off" class="w-full" />
+            <div id="editGroupDropdown" class="group-dropdown absolute top-full left-0 right-0 hidden">
+            </div>
           </div>
         </div>
-        <div class="sm:col-span-2 flex justify-end gap-3 mt-2">
+        <div class="flex flex-col sm:flex-row sm:items-start gap-3">
+          <label class="text-sm font-semibold w-20 shrink-0 pt-2" style="color: var(--text-secondary)">标签</label>
+          <div class="flex-1">
+            <div class="tag-input-wrapper" id="editTagsWrapper">
+              <input id="editTagInput" type="text" placeholder="输入标签后按 Enter" />
+            </div>
+            <div class="mt-3">
+              <span class="text-sm font-semibold" style="color: var(--text-secondary)">所有标签（点击插入）：</span>
+              <div id="editTagSuggestions" class="flex flex-wrap gap-2 mt-2"></div>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
           <button type="button" id="editCancel" class="btn btn-ghost">取消</button>
           <button class="btn btn-dark">保存</button>
         </div>
@@ -593,7 +741,7 @@ const INDEX_HTML = `<!doctype html>
       groups: [],
       allTags: [],
       selectedGroup: '',
-      selectedTags: [],
+      selectedTags: ['有效'],
       excludedTags: [],
       lastAutoCheckinId: null,
       addTags: [],
@@ -701,14 +849,25 @@ const INDEX_HTML = `<!doctype html>
       // 弹窗控制
       $('#openAdminModal').onclick = () => { $('#adminModal').style.display = 'flex'; setModalOpen(true); };
       $('#closeAdminModal').onclick = () => { $('#adminModal').style.display = 'none'; setModalOpen(false); };
-      $('#openAddModal').onclick = () => {
+      $('#openAddModal').onclick = async () => {
         if (!state.adminOK) { alert('请先点击右上角🔒输入并保存正确的管理口令'); return; }
+
+        // Ensure meta data is loaded
+        if (state.groups.length === 0 || state.allTags.length === 0) {
+          await loadMeta();
+        }
+
         state.addTags = ['有效'];
         renderTagInput('addTagsWrapper', 'addTags');
+        renderAddTagSuggestions();
         $('#addForm').reset();
         $('#addMsg').textContent = '';
         $('#addModal').style.display = 'flex';
         setModalOpen(true);
+        // Setup group dropdown after DOM is rendered
+        setTimeout(() => {
+          setupGroupDropdown('addGroupInput', 'addGroupDropdown');
+        }, 100);
       };
       $('#closeAddModal').onclick = () => { $('#addModal').style.display = 'none'; setModalOpen(false); };
 
@@ -1129,11 +1288,17 @@ const INDEX_HTML = `<!doctype html>
       });
     }
 
-    function openEditModal(item) {
+    async function openEditModal(item) {
       if (!state.adminOK) {
         alert('请先点击 🔒 图标输入并保存管理口令');
         return;
       }
+
+      // Ensure meta data is loaded
+      if (state.groups.length === 0 || state.allTags.length === 0) {
+        await loadMeta();
+      }
+
       const mask = $('#editModal');
       const form = $('#editForm');
       form.id.value = item.id;
@@ -1148,6 +1313,10 @@ const INDEX_HTML = `<!doctype html>
 
       mask.style.display = 'flex';
       setModalOpen(true);
+      // Setup group dropdown after DOM is rendered
+      setTimeout(() => {
+        setupGroupDropdown('editGroupInput', 'editGroupDropdown');
+      }, 100);
     }
     
     function closeEditModal() {
@@ -1187,7 +1356,151 @@ const INDEX_HTML = `<!doctype html>
         suggestionsContainer.appendChild(chip);
       });
     }
-    
+
+    function renderAddTagSuggestions() {
+      const suggestionsContainer = $('#addTagSuggestions');
+      suggestionsContainer.innerHTML = '';
+
+      if (!state.allTags || state.allTags.length === 0) return;
+
+      state.allTags.forEach(tag => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.textContent = tag;
+
+        if (state.addTags.includes(tag)) {
+          chip.classList.add('active');
+        }
+
+        chip.onclick = () => {
+          if (state.addTags.includes(tag)) {
+            const index = state.addTags.indexOf(tag);
+            if (index > -1) {
+              state.addTags.splice(index, 1);
+            }
+          } else {
+            state.addTags.push(tag);
+          }
+          renderTagInput('addTagsWrapper', 'addTags');
+          renderAddTagSuggestions();
+        };
+
+        suggestionsContainer.appendChild(chip);
+      });
+    }
+
+    // Group dropdown functions
+    function renderGroupDropdown(inputId, dropdownId) {
+      const input = $('#' + inputId);
+      const dropdown = $('#' + dropdownId);
+
+      if (!input || !dropdown) {
+        return;
+      }
+
+      const currentValue = input.value;
+      dropdown.innerHTML = '';
+
+      // Add existing groups as options
+      state.groups.forEach(group => {
+        const option = document.createElement('div');
+        option.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm';
+        option.textContent = group;
+        option.onclick = () => {
+          input.value = group;
+          dropdown.classList.add('hidden');
+        };
+
+        // Highlight exact match
+        if (group === currentValue) {
+          option.classList.add('bg-blue-50', 'font-medium');
+        }
+
+        dropdown.appendChild(option);
+      });
+
+      // Add "clear" option if there's a value
+      if (currentValue) {
+        const clearOption = document.createElement('div');
+        clearOption.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm text-red-600 border-t';
+        clearOption.textContent = '清除分组';
+        clearOption.onclick = () => {
+          input.value = '';
+          dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(clearOption);
+      }
+
+      // Show/hide dropdown based on content
+      if (state.groups.length > 0) {
+        dropdown.classList.remove('hidden');
+      } else {
+        dropdown.classList.add('hidden');
+      }
+    }
+
+    function setupGroupDropdown(inputId, dropdownId) {
+      const input = $('#' + inputId);
+      const dropdown = $('#' + dropdownId);
+
+      if (!input || !dropdown) {
+        return;
+      }
+
+      // Handle input focus
+      input.addEventListener('focus', () => {
+        renderGroupDropdown(inputId, dropdownId);
+      });
+
+      // Handle input click (prevent closing when clicking input)
+      input.addEventListener('click', (e) => {
+        renderGroupDropdown(inputId, dropdownId);
+        e.stopPropagation();
+      });
+
+      // Handle input typing - filter groups
+      input.addEventListener('input', () => {
+        renderGroupDropdown(inputId, dropdownId);
+      });
+
+      // Handle blur with delay to allow click on dropdown items
+      input.addEventListener('blur', () => {
+        setTimeout(() => {
+          dropdown.classList.add('hidden');
+        }, 200);
+      });
+
+      // Handle keyboard navigation
+      input.addEventListener('keydown', (e) => {
+        const items = dropdown.querySelectorAll('div');
+        const activeItem = dropdown.querySelector('.bg-blue-50');
+        let activeIndex = Array.from(items).indexOf(activeItem);
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (activeIndex < items.length - 1) {
+            if (activeItem) activeItem.classList.remove('bg-blue-50', 'font-medium');
+            items[activeIndex + 1].classList.add('bg-blue-50', 'font-medium');
+          }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (activeIndex > 0) {
+            if (activeItem) activeItem.classList.remove('bg-blue-50', 'font-medium');
+            items[activeIndex - 1].classList.add('bg-blue-50', 'font-medium');
+          }
+        } else if (e.key === 'Enter') {
+          if (activeItem && !activeItem.textContent.includes('清除')) {
+            e.preventDefault();
+            input.value = activeItem.textContent;
+            dropdown.classList.add('hidden');
+          }
+        } else if (e.key === 'Escape') {
+          dropdown.classList.add('hidden');
+        }
+      });
+    }
+
     async function onEditSubmit(e) {
       e.preventDefault();
       const fd = new FormData(e.target);
