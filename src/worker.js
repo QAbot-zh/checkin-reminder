@@ -571,6 +571,12 @@ const INDEX_HTML = `<!doctype html>
         <div class="grid gap-5">
           <div>
             <div class="flex items-center justify-between mb-4">
+              <span class="text-sm font-semibold" style="color: var(--text-secondary)">签到类型</span>
+            </div>
+            <div id="checkinTypeChips" class="flex flex-wrap gap-3 mb-4"></div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-4">
               <span class="text-sm font-semibold" style="color: var(--text-secondary)">标签筛选</span>
             </div>
             <div class="mb-4 max-h-40 overflow-y-auto">
@@ -649,6 +655,18 @@ const INDEX_HTML = `<!doctype html>
             </div>
           </div>
         </div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">签到类型</label>
+          <select name="checkinType" id="addCheckinType" class="flex-1">
+            <option value="daily">每日签到</option>
+            <option value="weekly">每周签到</option>
+            <option value="monthly">每月签到</option>
+            <option value="quarterly">每季度签到</option>
+            <option value="yearly">每年签到</option>
+            <option value="custom">自定义间隔</option>
+          </select>
+          <input name="checkinInterval" id="addCheckinInterval" type="number" placeholder="间隔天数" class="flex-1" style="display:none" min="1" />
+        </div>
         <div class="flex flex-col sm:flex-row sm:items-start gap-3">
           <label class="text-sm font-semibold w-20 shrink-0 pt-2" style="color: var(--text-secondary)">标签</label>
           <div class="flex-1">
@@ -696,6 +714,18 @@ const INDEX_HTML = `<!doctype html>
             </div>
           </div>
         </div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">签到类型</label>
+          <select name="checkinType" id="editCheckinType" class="flex-1">
+            <option value="daily">每日签到</option>
+            <option value="weekly">每周签到</option>
+            <option value="monthly">每月签到</option>
+            <option value="quarterly">每季度签到</option>
+            <option value="yearly">每年签到</option>
+            <option value="custom">自定义间隔</option>
+          </select>
+          <input name="checkinInterval" id="editCheckinInterval" type="number" placeholder="间隔天数" class="flex-1" min="1" />
+        </div>
         <div class="flex flex-col sm:flex-row sm:items-start gap-3">
           <label class="text-sm font-semibold w-20 shrink-0 pt-2" style="color: var(--text-secondary)">标签</label>
           <div class="flex-1">
@@ -731,6 +761,44 @@ const INDEX_HTML = `<!doctype html>
     const $ = (sel, el=document) => el.querySelector(sel);
     const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
 
+    const getCheckinTypeLabel = (checkinType) => {
+      const labels = {
+        'daily': '每日签到',
+        'weekly': '每周签到',
+        'monthly': '每月签到',
+        'quarterly': '每季度签到',
+        'yearly': '每年签到',
+        'custom': '自定义间隔'
+      };
+      return labels[checkinType] || '每日签到';
+    };
+
+    const getDaysUntilNextCheckin = (entry, today) => {
+      if (!entry.last_checkin_date) return 0;
+
+      const last = new Date(entry.last_checkin_date);
+      const now = new Date(today);
+      const diffTime = now - last;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      switch(entry.checkin_type) {
+        case 'daily':
+          return Math.max(0, 1 - diffDays);
+        case 'weekly':
+          return Math.max(0, 7 - diffDays);
+        case 'monthly':
+          return Math.max(0, 30 - diffDays);
+        case 'quarterly':
+          return Math.max(0, 90 - diffDays);
+        case 'yearly':
+          return Math.max(0, 365 - diffDays);
+        case 'custom':
+          return Math.max(0, (entry.checkin_interval || 1) - diffDays);
+        default:
+          return 0;
+      }
+    };
+
     const state = {
       adminToken: localStorage.getItem('adminToken') || '',
       adminOK: false,
@@ -740,9 +808,11 @@ const INDEX_HTML = `<!doctype html>
       entries: [],
       groups: [],
       allTags: [],
+      checkinTypes: [],
       selectedGroup: '',
       selectedTags: ['有效'],
       excludedTags: [],
+      selectedCheckinType: '',
       lastAutoCheckinId: null,
       addTags: [],
       editTags: [],
@@ -932,15 +1002,39 @@ const INDEX_HTML = `<!doctype html>
       // 新增表单 - 标签输入
       setupTagInput('addTagInput', 'addTagsWrapper', 'addTags');
       
+      // 签到类型切换事件
+      $('#addCheckinType').addEventListener('change', (e) => {
+        const intervalInput = $('#addCheckinInterval');
+        if (e.target.value === 'custom') {
+          intervalInput.style.display = 'block';
+          intervalInput.required = true;
+        } else {
+          intervalInput.style.display = 'none';
+          intervalInput.required = false;
+          intervalInput.value = '';
+        }
+      });
+
       $('#addForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const fd = new FormData(e.target);
+        const checkinType = fd.get('checkinType')?.toString().trim() || 'daily';
+        const checkinInterval = checkinType === 'custom' ? parseInt(fd.get('checkinInterval')?.toString().trim() || '0') : null;
+
+        if (checkinType === 'custom' && (!checkinInterval || checkinInterval < 1)) {
+          $('#addMsg').textContent = '❌ 自定义间隔必须设置大于0的天数';
+          $('#addMsg').style.color = '#dc2626';
+          return;
+        }
+
         const body = {
           name: fd.get('name')?.toString().trim(),
           signUrl: fd.get('signUrl')?.toString().trim(),
           redeemUrl: fd.get('redeemUrl')?.toString().trim() || null,
           groupName: fd.get('groupName')?.toString().trim() || null,
-          tags: state.addTags
+          tags: state.addTags,
+          checkinType: checkinType,
+          checkinInterval: checkinInterval
         };
         $('#addMsg').textContent = '';
         try {
@@ -956,6 +1050,7 @@ const INDEX_HTML = `<!doctype html>
           e.target.reset();
           state.addTags = [];
           renderTagInput('addTagsWrapper', 'addTags');
+          $('#addCheckinInterval').style.display = 'none';
           await loadMeta(); await loadEntries(); renderFilters(); render();
           $('#addMsg').textContent = '✅ 已添加';
           $('#addMsg').style.color = '#16a34a';
@@ -967,7 +1062,7 @@ const INDEX_HTML = `<!doctype html>
       });
 
       $('#clearFilters').onclick = async () => {
-        state.selectedGroup = ''; state.selectedTags = []; state.excludedTags = [];
+        state.selectedGroup = ''; state.selectedTags = []; state.excludedTags = []; state.selectedCheckinType = '';
         $('#groupSelect').value = '';
         await loadEntries(); renderFilters(); render();
       };
@@ -1075,7 +1170,7 @@ const INDEX_HTML = `<!doctype html>
     async function loadMeta() {
       const res = await fetch('/api/meta', { headers: { 'X-Admin-Token': state.adminToken } });
       const data = await res.json();
-      state.groups = data.groups || []; state.allTags = data.tags || [];
+      state.groups = data.groups || []; state.allTags = data.tags || []; state.checkinTypes = data.checkinTypes || [];
     }
     
     async function loadEntries() {
@@ -1086,6 +1181,7 @@ const INDEX_HTML = `<!doctype html>
       }
       if (state.selectedTags.length) params.set('tags', state.selectedTags.join(','));
       if (state.excludedTags.length) params.set('excludeTags', state.excludedTags.join(','));
+      if (state.selectedCheckinType) params.set('checkinType', state.selectedCheckinType);
       const res = await fetch('/api/entries' + (params.toString() ? ('?' + params) : ''), {
         headers: { 'X-Admin-Token': state.adminToken }
       });
@@ -1100,10 +1196,42 @@ const INDEX_HTML = `<!doctype html>
 
     function renderFilters() {
       const sel = $('#groupSelect'); const keep = sel.value;
-      sel.innerHTML = '<option value="">全部分组</option><option value="__unchecked__">仅未签到</option>' + 
+      sel.innerHTML = '<option value="">全部分组</option><option value="__unchecked__">仅未签到</option>' +
         state.groups.map(g => '<option value="'+escapeHtml(g)+'">'+escapeHtml(g)+'</option>').join('');
       sel.value = state.selectedGroup || keep || '';
       sel.onchange = async () => { state.selectedGroup = sel.value; await loadEntries(); render(); };
+
+      const checkinTypeWrap = $('#checkinTypeChips'); checkinTypeWrap.innerHTML = '';
+      const checkinTypeOption = document.createElement('button');
+      checkinTypeOption.type = 'button'; checkinTypeOption.className = 'chip'; checkinTypeOption.textContent = '全部类型';
+      if (!state.selectedCheckinType) checkinTypeOption.classList.add('active');
+      checkinTypeOption.onclick = async () => {
+        // 学习标签处理方式：直接操作DOM，不重新渲染整个过滤器
+        // 移除所有签到类型按钮的active类
+        checkinTypeWrap.querySelectorAll('.chip').forEach(btn => btn.classList.remove('active'));
+        // 给当前按钮添加active类
+        checkinTypeOption.classList.add('active');
+        state.selectedCheckinType = '';
+        await loadEntries(); render();
+      };
+      checkinTypeWrap.appendChild(checkinTypeOption);
+
+      state.checkinTypes.forEach(type => {
+        const chip = document.createElement('button');
+        chip.type = 'button'; chip.className = 'chip'; chip.textContent = getCheckinTypeLabel(type);
+        chip.setAttribute('checkin-type', type);
+        if (state.selectedCheckinType === type) chip.classList.add('active');
+        chip.onclick = async () => {
+          // 学习标签处理方式：直接操作DOM，不重新渲染整个过滤器
+          // 移除所有签到类型按钮的active类
+          checkinTypeWrap.querySelectorAll('.chip').forEach(btn => btn.classList.remove('active'));
+          // 给当前按钮添加active类
+          chip.classList.add('active');
+          state.selectedCheckinType = type;
+          await loadEntries(); render();
+        };
+        checkinTypeWrap.appendChild(chip);
+      });
 
       const wrap = $('#tagChips'); wrap.innerHTML = '';
       const excludeWrap = $('#excludeTagChips'); excludeWrap.innerHTML = '';
@@ -1173,7 +1301,8 @@ const INDEX_HTML = `<!doctype html>
       state.entries.forEach(item => {
         const node = tpl.content.cloneNode(true);
         $('.name', node).textContent = item.name;
-        $('.group-line', node).textContent = item.group_name ? ('分组：' + item.group_name) : '';
+        $('.group-line', node).textContent = (item.group_name ? ('分组：' + item.group_name) : '') +
+          (item.checkin_type ? (' | ' + getCheckinTypeLabel(item.checkin_type)) : '');
 
         const badgeWrap = $('.tag-badges', node);
         (item.tags || []).forEach(t => {
@@ -1219,8 +1348,19 @@ const INDEX_HTML = `<!doctype html>
         const actionWrap = $('.action-wrap', node);
 
         const badge = document.createElement('span');
-        badge.className = 'badge ' + (item.checked_today ? 'badge-success' : 'badge-warning');
-        badge.textContent = item.checked_today ? '今日已签' : '今日未签';
+        if (item.checked_today) {
+          badge.className = 'badge badge-success';
+          badge.textContent = '今日已签';
+        } else if (item.can_checkin) {
+          badge.className = 'badge badge-warning';
+          badge.textContent = '可签到';
+        } else {
+          badge.className = 'badge';
+          badge.style.background = 'var(--text-secondary)';
+          badge.style.color = 'white';
+          const daysLeft = getDaysUntilNextCheckin(item, state.today);
+          badge.textContent = daysLeft > 0 ? '还有' + daysLeft + '天' : '不可签';
+        }
         actionWrap.appendChild(badge);
 
         const makeAnchorBtn = (label, href, kind, extraClass='btn-ghost') => {
@@ -1306,6 +1446,16 @@ const INDEX_HTML = `<!doctype html>
       form.signUrl.value = item.sign_url || '';
       form.redeemUrl.value = item.redeem_url || '';
       form.groupName.value = item.group_name || '';
+      form.checkinType.value = item.checkin_type || 'daily';
+      form.checkinInterval.value = item.checkin_interval || '';
+
+      // 显示/隐藏自定义间隔输入框
+      const intervalInput = $('#editCheckinInterval');
+      if (item.checkin_type === 'custom') {
+        intervalInput.style.display = 'block';
+      } else {
+        intervalInput.style.display = 'none';
+      }
 
       state.editTags = [...(item.tags || [])];
       renderTagInput('editTagsWrapper', 'editTags');
@@ -1645,6 +1795,50 @@ function parseTagsFromRow(tagsText) {
   try { const v = JSON.parse(tagsText); if (Array.isArray(v)) return v.map(s => String(s)).filter(Boolean); } catch {}
   return String(tagsText).split(",").map(s => s.trim()).filter(Boolean);
 }
+
+function canCheckin(entry, today) {
+  if (!entry.last_checkin_date) return true;  // 从未签到
+
+  const last = new Date(entry.last_checkin_date);
+  const now = new Date(today);
+
+  switch(entry.checkin_type) {
+    case 'daily':
+      return today !== entry.last_checkin_date;  // 今天没签过
+
+    case 'weekly':
+      return (now - last) >= 7 * 24 * 60 * 60 * 1000;
+
+    case 'monthly':
+      // 同号或间隔30天
+      return now.getDate() === last.getDate() ||
+             (now - last) >= 30 * 24 * 60 * 60 * 1000;
+
+    case 'quarterly':
+      return (now - last) >= 90 * 24 * 60 * 60 * 1000;
+
+    case 'yearly':
+      return (now - last) >= 365 * 24 * 60 * 60 * 1000;
+
+    case 'custom':
+      return (now - last) >= entry.checkin_interval * 24 * 60 * 60 * 1000;
+
+    default:
+      return today !== entry.last_checkin_date;
+  }
+}
+
+function getCheckinTypeLabel(checkinType) {
+  const labels = {
+    'daily': '每日签到',
+    'weekly': '每周签到',
+    'monthly': '每月签到',
+    'quarterly': '每季度签到',
+    'yearly': '每年签到',
+    'custom': '自定义间隔'
+  };
+  return labels[checkinType] || '每日签到';
+}
 function includesAllTags(rowTags, filterTags) {
   if (!filterTags?.length) return true;
   if (!rowTags?.length) return false;
@@ -1686,7 +1880,9 @@ export default {
       const tSet = new Set();
       (tRes.results || []).forEach(r => { parseTagsFromRow(r.tags).forEach(t => tSet.add(t)); });
 
-      return json({ groups, tags: Array.from(tSet).sort((a,b)=>a.localeCompare(b,'zh')) });
+      const checkinTypes = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'];
+
+      return json({ groups, tags: Array.from(tSet).sort((a,b)=>a.localeCompare(b,'zh')), checkinTypes });
     }
 
     if (method === "GET" && pathname === "/api/entries") {
@@ -1695,9 +1891,10 @@ export default {
       const group = (url.searchParams.get("group") || "").trim();
       const filterTags = normalizeTags(url.searchParams.get("tags") || "");
       const excludeTags = normalizeTags(url.searchParams.get("excludeTags") || "");
+      const checkinType = (url.searchParams.get("checkinType") || "").trim();
 
       const base = `
-        SELECT e.id, e.name, e.sign_url, e.redeem_url, e.group_name, e.tags,
+        SELECT e.id, e.name, e.sign_url, e.redeem_url, e.group_name, e.tags, e.checkin_type, e.checkin_interval, e.last_checkin_date,
                CASE WHEN c.id IS NULL THEN 0 ELSE 1 END AS checked_today
         FROM entries e
         LEFT JOIN checkins c
@@ -1705,13 +1902,18 @@ export default {
       `;
       const where = []; const bind = [today];
       if (group) { where.push(`e.group_name = ?`); bind.push(group); }
+      if (checkinType) { where.push(`e.checkin_type = ?`); bind.push(checkinType); }
       const sql = base + (where.length ? ` WHERE ${where.join(' AND ')}` : '') + ` ORDER BY e.group_name IS NULL, e.group_name, e.id ASC`;
       const { results } = await env.DB.prepare(sql).bind(...bind).all();
 
       const filtered = (results || []).filter(row => {
         const rowTags = parseTagsFromRow(row.tags);
         return includesAllTags(rowTags, filterTags) && excludesAnyTags(rowTags, excludeTags);
-      }).map(row => ({ ...row, tags: parseTagsFromRow(row.tags) }));
+      }).map(row => ({
+        ...row,
+        tags: parseTagsFromRow(row.tags),
+        can_checkin: canCheckin(row, today)
+      }));
 
       return json(filtered);
     }
@@ -1724,15 +1926,20 @@ export default {
       const redeemUrl = (body.redeemUrl || "").trim() || null;
       const groupName = (body.groupName || "").trim() || null;
       const tags = normalizeTags(body.tags);
+      const checkinType = (body.checkinType || "daily").trim();
+      const checkinInterval = body.checkinInterval ? parseInt(body.checkinInterval) : null;
+
       if (!name || !/^https?:\/\//i.test(signUrl)) return text("参数不合法：name 必填，signUrl 必须是 http(s) 链接", 400);
+      if (!['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'].includes(checkinType)) return text("参数不合法：checkinType 必须是 daily/weekly/monthly/quarterly/yearly/custom 之一", 400);
+      if (checkinType === 'custom' && (!checkinInterval || checkinInterval < 1)) return text("参数不合法：custom 类型必须设置 checkinInterval >= 1", 400);
 
       const now = new Date().toISOString();
       const stmt = `
-        INSERT INTO entries (name, sign_url, redeem_url, group_name, tags, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO entries (name, sign_url, redeem_url, group_name, tags, checkin_type, checkin_interval, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
-      const { lastRowId } = await env.DB.prepare(stmt).bind(name, signUrl, redeemUrl, groupName, JSON.stringify(tags), now, now).run();
-      return json({ id: lastRowId, name, sign_url: signUrl, redeem_url: redeemUrl, group_name: groupName, tags }, { status: 201 });
+      const { lastRowId } = await env.DB.prepare(stmt).bind(name, signUrl, redeemUrl, groupName, JSON.stringify(tags), checkinType, checkinInterval, now, now).run();
+      return json({ id: lastRowId, name, sign_url: signUrl, redeem_url: redeemUrl, group_name: groupName, tags, checkin_type: checkinType, checkin_interval: checkinInterval }, { status: 201 });
     }
 
     if (method === "PUT" && pathname.startsWith("/api/entries/")) {
@@ -1745,15 +1952,20 @@ export default {
       const redeemUrl = (body.redeemUrl || "").trim() || null;
       const groupName = (body.groupName || "").trim() || null;
       const tags = normalizeTags(body.tags);
+      const checkinType = (body.checkinType || "daily").trim();
+      const checkinInterval = body.checkinInterval ? parseInt(body.checkinInterval) : null;
+
       if (!name || !/^https?:\/\//i.test(signUrl)) return text("参数不合法：name 必填，signUrl 必须是 http(s) 链接", 400);
+      if (!['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'].includes(checkinType)) return text("参数不合法：checkinType 必须是 daily/weekly/monthly/quarterly/yearly/custom 之一", 400);
+      if (checkinType === 'custom' && (!checkinInterval || checkinInterval < 1)) return text("参数不合法：custom 类型必须设置 checkinInterval >= 1", 400);
 
       const now = new Date().toISOString();
       const sql = `
         UPDATE entries
-           SET name = ?, sign_url = ?, redeem_url = ?, group_name = ?, tags = ?, updated_at = ?
+           SET name = ?, sign_url = ?, redeem_url = ?, group_name = ?, tags = ?, checkin_type = ?, checkin_interval = ?, updated_at = ?
          WHERE id = ?
       `;
-      const { success } = await env.DB.prepare(sql).bind(name, signUrl, redeemUrl, groupName, JSON.stringify(tags), now, id).run();
+      const { success } = await env.DB.prepare(sql).bind(name, signUrl, redeemUrl, groupName, JSON.stringify(tags), checkinType, checkinInterval, now, id).run();
       if (!success) return text("Not Modified", 304);
       return text("OK", 200);
     }
@@ -1772,15 +1984,34 @@ export default {
       const id = Number(pathname.split("/").pop()); if (!Number.isFinite(id)) return text("Bad id", 400);
       const tz = env.TIMEZONE || "UTC"; const today = ymdInTZ(new Date(), tz);
       if (method === "POST") {
+        // 先获取条目信息，检查是否可以签到
+        const entryRes = await env.DB.prepare(`SELECT checkin_type, checkin_interval, last_checkin_date FROM entries WHERE id = ?`).bind(id).first();
+        if (!entryRes) return text("条目不存在", 404);
+
+        // 检查是否满足签到条件
+        if (!canCheckin(entryRes, today)) {
+          return text("还未到签到时间", 400);
+        }
+
         const sql = `
           INSERT INTO checkins (entry_id, date, created_at)
           VALUES (?, ?, ?)
           ON CONFLICT(entry_id, date) DO NOTHING
         `;
         await env.DB.prepare(sql).bind(id, today, new Date().toISOString()).run();
+
+        // 更新条目的最后签到日期
+        await env.DB.prepare(`UPDATE entries SET last_checkin_date = ? WHERE id = ?`).bind(today, id).run();
+
         return text("OK", 200);
       } else if (method === "DELETE") {
         await env.DB.prepare(`DELETE FROM checkins WHERE entry_id = ? AND date = ?`).bind(id, today).run();
+
+        // 删除签到记录时，更新条目的最后签到日期为最近一次的签到日期
+        const lastCheckin = await env.DB.prepare(`SELECT date FROM checkins WHERE entry_id = ? ORDER BY date DESC LIMIT 1`).bind(id).first();
+        const lastDate = lastCheckin ? lastCheckin.date : null;
+        await env.DB.prepare(`UPDATE entries SET last_checkin_date = ? WHERE id = ?`).bind(lastDate, id).run();
+
         return text("OK", 200);
       }
     }
