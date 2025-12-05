@@ -12,547 +12,227 @@ const INDEX_HTML = `<!doctype html>
   <script>tailwind.config = { corePlugins: { preflight: false } }</script>
   <style>
     :root {
-        /* Paper / Ink 基础 */
-        --bg-primary:   #FFF7E6;  /* 主背景：温暖纸黄 */
-        --bg-secondary: #FFEBC2;  /* 次级背景：浅杏色，区块分层 */
-        --bg-card:      #FFFBF2;  /* 卡片：更接近纸面 */
-        --text-primary: #1C2746;  /* 墨蓝主文 */
-        --text-secondary:#33415C; /* 次级文字：低对比墨蓝 */
-
-        /* 结构与层次 */
-        --border: #E6C78F;                     /* 纸色系边框 */
-        --shadow: rgba(28, 39, 70, 0.08);      /* 墨蓝阴影，低不透明度 */
-
-        /* 强调色（暖陶土色，和纸黄更和谐） */
-        --accent:       #E07A5F;  /* terracotta */
+        --bg-primary:   #FFF7E6;
+        --bg-secondary: #FFEBC2;
+        --bg-card:      #FFFBF2;
+        --text-primary: #1C2746;
+        --text-secondary:#33415C;
+        --border: #E6C78F;
+        --shadow: rgba(28, 39, 70, 0.08);
+        --accent:       #E07A5F;
         --accent-hover: #C9654E;
-        --accent-light: #FFE8DE;  /* 强调色的浅背景，用于badge/hover */
-
-        /* 语义色（柔和、偏暖，避免突兀） */
-        --success:      #79C1B8;  /* 柔和青绿 */
-        --success-dark: #173B3F;  /* success 上的深色文字 */
-        --warning:      #E6B422;  /* 日式金，暖调警告 */
-        --warning-dark: #1C2746;  /* warning 上的文字（与 text-primary 一致） */
+        --accent-light: #FFE8DE;
+        --success:      #79C1B8;
+        --success-dark: #173B3F;
+        --warning:      #E6B422;
+        --warning-dark: #1C2746;
     }
-
-    /* 暗色主题：维持“墨蓝 + 暖纸色文字”的对比关系 */
     [data-theme="dark"] {
-        --bg-primary:   #0E1A2A;  /* 深墨蓝 */
-        --bg-secondary: #15283D;  /* 稍亮一档用于分区 */
-        --bg-card:      #122238;  /* 卡片略提亮，保持分层 */
-        --text-primary: #FFF6E0;  /* 暖白文字（纸色调） */
-        --text-secondary:#E7D9BD; /* 次级文字：暖沙色 */
-
-        --border: #2E3D55;                    /* 低对比冷边框 */
+        --bg-primary:   #0E1A2A;
+        --bg-secondary: #15283D;
+        --bg-card:      #122238;
+        --text-primary: #FFF6E0;
+        --text-secondary:#E7D9BD;
+        --border: #2E3D55;
         --shadow: rgba(0, 0, 0, 0.45);
-
-        --accent:       #E07A5F;  /* 与亮色一致，品牌统一 */
+        --accent:       #E07A5F;
         --accent-hover: #F18A6C;
-        --accent-light: #1B2A38;  /* 深背景下的浅强调背景 */
-
+        --accent-light: #1B2A38;
         --success:      #6DCCB8;
         --success-dark: #0E1A2A;
         --warning:      #F2C350;
         --warning-dark: #0E1A2A;
     }
-    
-    * {
-      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-    }
-    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: var(--bg-primary);
       color: var(--text-primary);
-      font-size: 17px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      line-height: 1.6;
+      font-size: 18px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
     }
-    
-    /* --- sticky blocks --- */
-    .sticky-top{ position: sticky; top: 0; z-index: 60; }
-    .sticky-filters{ position: sticky; top: calc(var(--topBarH, 0px) + 12px); z-index: 50; }
-    /* 让粘顶区块滚动时不透明叠在内容之上 */
-    .sticky-top, .sticky-filters{ backdrop-filter: none; }
-
-    /* Disable sticky positioning when modal is open */
-    body.modal-open .sticky-top,
-    body.modal-open .sticky-filters {
-      position: static !important;
-    }
+    .sticky-top { position: sticky; top: 0; z-index: 60; }
+    .sticky-filters { position: sticky; top: calc(var(--topBarH, 0px) + 6px); z-index: 50; }
+    body.modal-open .sticky-top, body.modal-open .sticky-filters { position: static !important; }
 
     .card {
       background: var(--bg-card);
-      border: 2px solid var(--border);
-      border-radius: 24px;
-      box-shadow: 0 8px 24px var(--shadow);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 2px 6px var(--shadow);
     }
-
-    .card:hover {
-      box-shadow: 0 12px 36px var(--shadow);
-      transform: translateY(-2px);
-    }
-
-    /* 签到项分割线 */
     .entry-row {
-      padding: 1.25rem 0;
-      border-bottom: 2px solid var(--border);
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
     }
-    .entry-row:last-child {
-      border-bottom: none;
-    }
-    
+    .entry-row:last-child { border-bottom: none; }
+
     .chip {
-      border: 2px solid var(--border);
-      padding: 8px 16px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      padding: 3px 10px;
       border-radius: 9999px;
       font-size: 15px;
       background: var(--bg-card);
       color: var(--text-primary);
-      transition: all 0.2s;
+      cursor: pointer;
+      transition: all 0.15s;
       position: relative;
-      font-weight: 500;
     }
-    
-    .chip:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px var(--shadow);
-      background: var(--accent-light);
-    }
-    
-    .chip.active {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-
-    .chip.exclude {
-      background: #dc2626;
-      color: white;
-      border-color: #dc2626;
-    }
-
-    .chip.exclude:hover {
-      background: #b91c1c;
-      border-color: #b91c1c;
-    }
-    
-    .chip-removable {
-      padding-right: 36px;
-    }
-    
+    .chip:hover { background: var(--accent-light); }
+    .chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .chip.exclude { background: #dc2626; color: white; border-color: #dc2626; }
+    .chip-removable { padding-right: 22px; }
     .chip-remove {
-      position: absolute;
-      right: 6px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: rgba(239, 68, 68, 0.9);
-      color: white;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: bold;
+      position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+      width: 14px; height: 14px; border-radius: 50%;
+      background: rgba(239, 68, 68, 0.9); color: white;
+      display: none; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: bold; cursor: pointer;
     }
-    
-    .chip-removable:hover .chip-remove {
-      display: flex;
-    }
-    
+    .chip-removable:hover .chip-remove { display: flex; }
+
     .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 24px;
-      border: 2px solid var(--border);
-      border-radius: 16px;
-      font-size: 16px;
-      font-weight: 600;
-      transition: all 0.2s;
-      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 12px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 16px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+      white-space: nowrap;
     }
-    
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px var(--shadow);
-    }
-    
-    .btn-ghost {
-      background: var(--bg-card);
-      color: var(--text-primary);
-    }
-    
-    .btn-ghost:hover {
-      background: var(--accent-light);
-      border-color: var(--accent);
-    }
-    
-    .btn-dark {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-    
-    .btn-dark:hover {
-      background: var(--accent-hover);
-      border-color: var(--accent-hover);
-    }
-    
+    .btn:hover { box-shadow: 0 2px 4px var(--shadow); }
+    .btn-ghost { background: var(--bg-card); color: var(--text-primary); }
+    .btn-ghost:hover { background: var(--accent-light); border-color: var(--accent); }
+    .btn-dark { background: var(--accent); color: white; border-color: var(--accent); }
+    .btn-dark:hover { background: var(--accent-hover); }
+
     .icon-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 52px;
-      height: 52px;
-      border: 2px solid var(--border);
-      border-radius: 16px;
-      background: var(--bg-card);
-      cursor: pointer;
-      transition: all 0.2s;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 6px;
+      background: var(--bg-card); cursor: pointer; transition: all 0.15s;
     }
-    
-    .icon-btn:hover {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-      transform: scale(1.08);
-    }
-    
+    .icon-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+    .icon-btn svg { width: 20px; height: 20px; }
+
     .modal-mask {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 24, 88, 0.7);
-      backdrop-filter: blur(8px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 50;
-      padding: 20px;
+      position: fixed; inset: 0; background: rgba(0, 24, 88, 0.6);
+      backdrop-filter: blur(4px); display: none; align-items: center;
+      justify-content: center; z-index: 100; padding: 12px;
     }
-    
     .modal {
-      background: var(--bg-card);
-      border: 3px solid var(--accent);
-      border-radius: 28px;
-      box-shadow: 0 24px 72px rgba(0, 0, 0, 0.4);
-      width: 100%;
-      max-width: 680px;
-      max-height: 90vh;
-      overflow-y: auto;
+      background: var(--bg-card); border: 2px solid var(--accent); border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+      width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto;
     }
-    
+
     input, select, textarea {
-      background: var(--bg-card);
-      border: 2px solid var(--border);
-      color: var(--text-primary);
-      border-radius: 14px;
-      padding: 14px 18px;
-      font-size: 16px;
-      transition: all 0.2s;
-      min-height: 48px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--text-primary); border-radius: 6px;
+      padding: 7px 10px; font-size: 16px; transition: all 0.15s;
+      width: 100%; min-width: 0;
     }
-    
     input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 4px rgba(245, 130, 174, 0.15);
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(224, 122, 95, 0.2);
     }
-    
-    input::placeholder {
-      color: var(--text-secondary);
-      opacity: 0.6;
-    }
-    
+    input::placeholder { color: var(--text-secondary); opacity: 0.6; }
+
     .badge {
-      padding: 8px 18px;
-      border-radius: 9999px;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
+      display: inline-block; padding: 3px 8px; border-radius: 9999px;
+      font-size: 14px; font-weight: 600; white-space: nowrap;
     }
-    
-    .badge-success {
-      background: var(--success);
-      color: var(--success-dark);
-    }
-    
-    .badge-warning {
-      background: var(--warning);
-      color: var(--warning-dark);
-    }
-    
+    .badge-success { background: var(--success); color: var(--success-dark); }
+    .badge-warning { background: var(--warning); color: var(--warning-dark); }
+
     .tag-input-wrapper {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      padding: 12px;
-      border: 2px solid var(--border);
-      border-radius: 14px;
-      background: var(--bg-card);
-      min-height: 56px;
-      align-items: center;
+      display: flex; flex-wrap: wrap; gap: 5px; padding: 5px 8px;
+      border: 1px solid var(--border); border-radius: 6px;
+      background: var(--bg-card); min-height: 36px; align-items: center;
     }
-    
     .tag-input-wrapper input {
-      border: none;
-      padding: 6px 10px;
-      flex: 1;
-      min-width: 140px;
-      min-height: auto;
+      border: none; padding: 2px 4px; flex: 1; min-width: 80px;
     }
-    
-    .tag-input-wrapper input:focus {
-      box-shadow: none;
-    }
-    
-    h1 { 
-      font-size: 36px; 
-      font-weight: 800;
-      letter-spacing: -0.5px;
-    }
-    h2 { 
-      font-size: 22px; 
-      font-weight: 700;
-    }
-    h3 { 
-      font-size: 20px; 
-      font-weight: 700;
-    }
-    
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    .tag-input-wrapper input:focus { box-shadow: none; }
 
-    /* 移动端标题优化 */
-    @media (max-width: 640px) {
-      .header-actions {
-        gap: 6px;
-      }
-      #topBar h1 {
-        max-width: calc(100vw - 180px);
-      }
-    }
-    
-    .divider {
-      height: 2px;
-      background: var(--border);
-      margin: 24px 0;
-      border-radius: 2px;
-    }
-    
-    @media (max-width: 640px) {
-      h1 { font-size: 22px; }
-      .icon-btn { width: 40px; height: 40px; }
-      .btn { padding: 10px 18px; font-size: 15px; }
+    h1 { font-size: 24px; font-weight: 700; }
+    h2 { font-size: 18px; font-weight: 600; }
+    h3 { font-size: 17px; font-weight: 600; }
 
-      /* 移动端汇总栏优化 */
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+
+    @media (max-width: 640px) {
+      h1 { font-size: 21px; }
+      .icon-btn { width: 30px; height: 30px; }
+      .icon-btn svg { width: 17px; height: 17px; }
+      .btn { padding: 4px 10px; font-size: 15px; }
       .header-actions { gap: 8px; }
-      .icon-btn svg { width: 20px; height: 20px; }
-      #topBar .flex-wrap { gap: 8px; }
-    }
-    /* ===== Mobile Collapsible ===== */
-    @media (max-width: 640px) {
-      /* 通用：折叠时隐藏主体 */
       .is-collapsed .collapse-body { display: none; }
-
-      /* 顶部卡片：收起时压缩内边距、字号，隐藏副标题行 */
-      #topBar.is-collapsed .card { padding-top: 10px !important; padding-bottom: 10px !important; }
+      #topBar.is-collapsed .card { padding: 8px 12px !important; }
       #topBar.is-collapsed h1 { font-size: 18px; }
       #topBar.is-collapsed #today { display: none; }
-
-      /* 筛选卡片：收起时压缩内边距 */
-      #filters.is-collapsed .card { padding-top: 8px !important; padding-bottom: 8px !important; }
-
-      /* 移动端优化：筛选区域可滚动 */
-      #filtersBody {
-        max-height: 60vh;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      /* 移动端分组选择器优化 */
-      #groupSelect {
-        min-width: 0;
-        width: auto;
-      }
-      #clearFilters {
-        padding: 8px 12px;
-        font-size: 14px;
-      }
-      /* 移动端分组标签和下拉列表同行显示 */
-      @media (max-width: 640px) {
-        .group-select-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex: 1;
-          min-width: 0;
-        }
-        #groupSelect {
-          min-width: 80px;
-          max-width: 160px;
-        }
-      }
-
-      /* 移动端小屏幕优化 */
-      .sticky-filters { top: calc(var(--topBarH, 0px) + 8px); }
-      .sticky-top { top: 0; }
+      #filters.is-collapsed .card { padding: 8px 12px !important; }
+      #filtersBody { max-height: 50vh; overflow-y: auto; }
+      .group-select-wrapper { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; }
+      #groupSelect { min-width: 60px; max-width: 120px; }
+      #clearFilters { padding: 4px 8px; font-size: 14px; }
     }
 
-    /* 小小的图标旋转过渡（箭头指示开/合） */
     #chevHeader, #chevFilters { transition: transform .2s ease; }
-    [aria-expanded="false"] #chevHeader,
-    [aria-expanded="false"] #chevFilters { transform: rotate(-180deg); }
+    [aria-expanded="false"] #chevHeader, [aria-expanded="false"] #chevFilters { transform: rotate(-180deg); }
 
-    /* Form layout improvements */
-    .modal form input {
-      width: 100%;
-    }
-
-    /* Group dropdown styling - Enhanced for better visibility */
     .group-dropdown {
-      max-height: 160px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 0.375rem;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      z-index: 50;  /* Increased z-index to ensure it's above other elements */
-      background-color: var(--bg-card);
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      margin-top: 4px;  /* Add small gap from input */
+      max-height: 120px; overflow-y: auto; border: 1px solid var(--border);
+      border-radius: 6px; box-shadow: 0 4px 12px var(--shadow);
+      z-index: 60; background: var(--bg-card); margin-top: 2px;
     }
-
     .group-dropdown div {
-      padding: 0.75rem 1rem;  /* Increased padding for better touch targets */
-      cursor: pointer;
-      font-size: 0.875rem;
-      color: var(--text-primary);
-      border-bottom: 1px solid var(--border);
-      background-color: var(--bg-card);
-      transition: background-color 0.15s ease;  /* Smooth hover transition */
-      line-height: 1.4;  /* Better line height for readability */
+      padding: 5px 10px; cursor: pointer; font-size: 16px;
+      color: var(--text-primary); border-bottom: 1px solid var(--border);
+      background: var(--bg-card); transition: background 0.1s;
     }
+    .group-dropdown div:last-child { border-bottom: none; }
+    .group-dropdown div:hover { background: var(--bg-secondary); }
+    .group-dropdown .bg-blue-50 { background: var(--accent-light) !important; font-weight: 500; }
+    .group-dropdown div.text-red-600 { color: #dc2626 !important; }
 
-    .group-dropdown div:last-child {
-      border-bottom: none;
-      border-bottom-left-radius: 0.375rem;
-      border-bottom-right-radius: 0.375rem;
-    }
-
-    .group-dropdown div:first-child {
-      border-top-left-radius: 0.375rem;
-      border-top-right-radius: 0.375rem;
-    }
-
-    .group-dropdown div:hover {
-      background-color: var(--bg-secondary);
-    }
-
-    /* Selected item highlighting */
-    .group-dropdown .bg-blue-50 {
-      background-color: var(--accent-light) !important;  /* Use theme accent color */
-      color: var(--text-primary);
-      font-weight: 500;
-    }
-
-    .group-dropdown .bg-blue-50:hover {
-      background-color: var(--accent) !important;
-      color: white;
-    }
-
-    /* Clear option styling */
-    .group-dropdown div.text-red-600 {
-      color: #dc2626 !important;
-      border-top: 1px solid var(--border);
-      font-weight: 500;
-    }
-
-    .group-dropdown div.text-red-600:hover {
-      background-color: #fef2f2 !important;
-      color: #dc2626 !important;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .group-dropdown {
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
-      }
-
-      .group-dropdown div.text-red-600:hover {
-        background-color: #7f1d1d !important;
-      }
-
-      .group-dropdown .bg-blue-50 {
-        background-color: rgba(224, 122, 95, 0.2) !important;  /* Accent with transparency */
-      }
-
-      .group-dropdown .bg-blue-50:hover {
-        background-color: var(--accent) !important;
-      }
-    }
-
-    /* Animation for smooth appearance */
-    .group-dropdown {
-      transition: opacity 0.2s ease, transform 0.2s ease;
-      transform: translateY(-4px);
-      opacity: 0.95;
-    }
-
-    .group-dropdown:not(.hidden) {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    /* Ensure proper layering and no transparency issues */
-    .relative:has(>>.group-dropdown) {
-      z-index: 50;
-    }
-
-    .group-dropdown {
-      isolation: isolate;  /* Create new stacking context */
-    }
+    .form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .form-row label { width: 65px; flex-shrink: 0; font-size: 16px; color: var(--text-secondary); }
+    .form-row .form-input { flex: 1; min-width: 0; }
   </style>
 </head>
 <body>
-  <div class="max-w-6xl mx-auto p-4 sm:p-6">
-    <header id="topBar" class="mb-8 sticky-top">
-      <div class="card p-4 sm:p-6">
-        <div class="flex items-center justify-between gap-2 sm:gap-4">
+  <div class="max-w-4xl mx-auto p-3 sm:p-4">
+    <header id="topBar" class="mb-4 sticky-top">
+      <div class="card p-3">
+        <div class="flex items-center justify-between gap-2">
           <div class="min-w-0 flex-1">
-            <h1 class="font-extrabold text-ellipsis overflow-hidden whitespace-nowrap">每日签到汇总</h1>
-            <div id="today" class="text-base mt-2" style="color: var(--text-secondary)">加载中...</div>
+            <h1 class="text-ellipsis overflow-hidden whitespace-nowrap">每日签到汇总</h1>
+            <div id="today" class="text-xs mt-1" style="color: var(--text-secondary)">加载中...</div>
           </div>
           <div class="header-actions flex-shrink-0">
-            <button id="undoBtn" class="hidden btn btn-ghost">重置刚才的签到</button>
+            <button id="undoBtn" class="hidden btn btn-ghost">撤销</button>
             <button id="openAdminModal" class="icon-btn" title="管理口令">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
             </button>
             <button id="openAddModal" class="icon-btn" title="新增签到项">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
               </svg>
             </button>
             <button id="themeToggle" class="icon-btn" title="切换主题">
-              <svg id="sunIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg id="sunIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
                 <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
                 <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
                 <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
               </svg>
-              <svg id="moonIcon" style="display:none" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg id="moonIcon" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
               </svg>
             </button>
             <button id="collapseHeaderBtn" class="icon-btn sm:hidden" title="收起/展开顶部" aria-expanded="true">
-              <svg id="chevHeader" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg id="chevHeader" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
@@ -562,80 +242,69 @@ const INDEX_HTML = `<!doctype html>
     </header>
 
     <!-- 筛选 -->
-    <section id="filters" class="mb-6 card p-4 sm:p-6 sticky-filters">
-      <div class="flex items-center justify-between mb-2">
-        <div class="group-select-wrapper flex items-center gap-2 flex-1">
-          <label class="text-base font-bold shrink-0" style="color: var(--text-primary)">分组：</label>
-          <select id="groupSelect" class="flex-1 min-w-0 sm:max-w-xs">
-            <option value="">全部分组</option>
+    <section id="filters" class="mb-3 card p-3 sticky-filters">
+      <div class="flex items-center justify-between gap-2">
+        <div class="group-select-wrapper flex items-center gap-2 flex-1 min-w-0">
+          <label class="text-sm font-medium shrink-0" style="color: var(--text-primary)">分组</label>
+          <select id="groupSelect" class="flex-1 min-w-0" style="max-width:160px">
+            <option value="">全部</option>
             <option value="__unchecked__">仅未签到</option>
           </select>
-          <button id="clearFilters" class="btn btn-ghost shrink-0 px-3 py-2 text-sm ml-2">清空</button>
+          <button id="clearFilters" class="btn btn-ghost">清空</button>
         </div>
-        <button id="collapseFiltersBtn" class="icon-btn" style="width:32px;height:32px" title="收起/展开筛选" aria-expanded="true">
-          <svg id="chevFilters" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <button id="collapseFiltersBtn" class="icon-btn" title="收起/展开筛选" aria-expanded="true">
+          <svg id="chevFilters" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </button>
       </div>
-      <div id="filtersBody" class="collapse-body">
-        <div class="grid gap-5">
+      <div id="filtersBody" class="collapse-body mt-3">
+        <div class="space-y-3">
           <div>
-            <div class="flex items-center justify-between mb-4">
-              <span class="text-sm font-semibold" style="color: var(--text-secondary)">签到类型</span>
-            </div>
-            <div id="checkinTypeChips" class="flex flex-wrap gap-3 mb-4"></div>
+            <div class="text-xs font-medium mb-2" style="color: var(--text-secondary)">签到类型</div>
+            <div id="checkinTypeChips" class="flex flex-wrap gap-1.5"></div>
           </div>
           <div>
-            <div class="flex items-center justify-between mb-4">
-              <span class="text-sm font-semibold" style="color: var(--text-secondary)">标签筛选</span>
-            </div>
-            <div class="mb-4 max-h-40 overflow-y-auto">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-semibold" style="color: var(--text-secondary)">包含标签：</span>
-              </div>
-              <div id="tagChips" class="flex flex-wrap gap-3"></div>
-            </div>
-            <div class="max-h-40 overflow-y-auto">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-semibold" style="color: var(--text-secondary)">排除标签：</span>
-              </div>
-              <div id="excludeTagChips" class="flex flex-wrap gap-3"></div>
-            </div>
+            <div class="text-xs font-medium mb-2" style="color: var(--text-secondary)">包含标签</div>
+            <div id="tagChips" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto"></div>
+          </div>
+          <div>
+            <div class="text-xs font-medium mb-2" style="color: var(--text-secondary)">排除标签</div>
+            <div id="excludeTagChips" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto"></div>
           </div>
         </div>
       </div>
     </section>
 
     <!-- 列表 -->
-    <section class="card p-6 sm:p-8">
-      <div class="flex items-center justify-between" style="padding-bottom: 1.25rem; border-bottom: 2px solid var(--border)">
-        <h2 class="text-base font-bold" style="color: var(--text-primary)">我的签到项</h2>
+    <section class="card p-3 sm:p-4">
+      <div class="flex items-center justify-between pb-2 mb-2" style="border-bottom: 1px solid var(--border)">
+        <h2 style="color: var(--text-primary)">我的签到项</h2>
         <button id="refreshBtn" class="btn btn-ghost">刷新</button>
       </div>
       <div id="list"></div>
-      <div id="empty" class="text-base hidden" style="color: var(--text-secondary)">还没有条目，点击右上角 ➕ 添加一个吧。</div>
+      <div id="empty" class="text-sm py-4 hidden" style="color: var(--text-secondary)">还没有条目，点击右上角 ➕ 添加一个吧。</div>
     </section>
   </div>
 
   <!-- 管理口令弹窗 -->
   <div id="adminModal" class="modal-mask">
-    <div class="modal p-6 sm:p-8">
-      <h3 class="mb-5">管理口令</h3>
-      <div class="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+    <div class="modal p-4">
+      <h3 class="mb-3">管理口令</h3>
+      <div class="flex gap-2 items-center mb-3">
         <div class="relative flex-1">
-          <input id="adminToken" type="password" placeholder="输入管理口令以新增/删除/编辑条目" class="w-full pr-16" />
-          <button id="togglePwd" class="absolute right-2 top-1/2 -translate-y-1/2 icon-btn" style="width:40px;height:40px" title="显示/隐藏口令">
-            <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <input id="adminToken" type="password" placeholder="输入管理口令" class="pr-10" />
+          <button id="togglePwd" class="absolute right-1 top-1/2 -translate-y-1/2 icon-btn" style="width:28px;height:28px;border:none" title="显示/隐藏">
+            <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/>
             </svg>
           </button>
         </div>
-        <button id="saveTokenBtn" class="btn btn-dark">保存口令</button>
+        <button id="saveTokenBtn" class="btn btn-dark">保存</button>
         <button id="clearTokenBtn" class="btn btn-ghost">清除</button>
       </div>
-      <p class="text-sm mt-4" style="color: var(--text-secondary)">口令仅保存在本地；调用新增/删除/编辑 API 时作为 <code>X-Admin-Token</code> 发送。</p>
-      <div class="mt-6 flex justify-end">
+      <p class="text-xs" style="color: var(--text-secondary)">口令仅保存在本地，调用 API 时作为 X-Admin-Token 发送。</p>
+      <div class="mt-4 flex justify-end">
         <button id="closeAdminModal" class="btn btn-ghost">关闭</button>
       </div>
     </div>
@@ -643,113 +312,115 @@ const INDEX_HTML = `<!doctype html>
 
   <!-- 新增条目弹窗 -->
   <div id="addModal" class="modal-mask">
-    <div class="modal p-6 sm:p-8">
-      <h3 class="mb-5">新增签到条目</h3>
-      <form id="addForm" class="space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">名称</label>
-          <input name="name" required placeholder="请输入签到项名称" class="flex-1" />
+    <div class="modal p-4">
+      <h3 class="mb-3">新增签到条目</h3>
+      <form id="addForm">
+        <div class="form-row">
+          <label>名称</label>
+          <input name="name" required placeholder="签到项名称" class="form-input" autocomplete="off" />
         </div>
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">签到网址</label>
-          <input name="signUrl" required placeholder="https://example.com/signin" class="flex-1" />
+        <div class="form-row">
+          <label>签到网址</label>
+          <input name="signUrl" required placeholder="https://..." class="form-input" autocomplete="off" />
         </div>
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">兑换码网址</label>
-          <input name="redeemUrl" placeholder="可选：兑换码或奖励页面网址" class="flex-1" />
+        <div class="form-row">
+          <label>兑换网址</label>
+          <input name="redeemUrl" placeholder="可选" class="form-input" autocomplete="off" />
         </div>
-        <div class="flex flex-col sm:flex-row sm:items-start gap-3">
-          <label class="text-sm font-semibold w-20 shrink-0 pt-2" style="color: var(--text-secondary)">分组</label>
-          <div class="relative flex-1">
-            <input name="groupName" id="addGroupInput" placeholder="选择或输入分组" autocomplete="off" class="w-full" />
-            <div id="addGroupDropdown" class="group-dropdown absolute top-full left-0 right-0 hidden">
-            </div>
+        <div class="form-row">
+          <label>分组</label>
+          <div class="form-input relative">
+            <input name="groupName" id="addGroupInput" placeholder="选择或输入" autocomplete="off" />
+            <div id="addGroupDropdown" class="group-dropdown absolute top-full left-0 w-full hidden"></div>
           </div>
         </div>
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">签到类型</label>
-          <select name="checkinType" id="addCheckinType" class="flex-1">
-            <option value="daily">每日签到</option>
-            <option value="weekly">每周签到</option>
-            <option value="monthly">每月签到</option>
-            <option value="quarterly">每季度签到</option>
-            <option value="yearly">每年签到</option>
-            <option value="custom">自定义间隔</option>
-          </select>
-          <input name="checkinInterval" id="addCheckinInterval" type="number" placeholder="间隔天数" class="flex-1" style="display:none" min="1" />
+        <div class="form-row">
+          <label>签到类型</label>
+          <div class="form-input flex gap-2">
+            <select name="checkinType" id="addCheckinType" class="flex-1">
+              <option value="daily">每日</option>
+              <option value="weekly">每周</option>
+              <option value="monthly">每月</option>
+              <option value="quarterly">每季度</option>
+              <option value="yearly">每年</option>
+              <option value="custom">自定义</option>
+            </select>
+            <input name="checkinInterval" id="addCheckinInterval" type="number" placeholder="天数" style="display:none;width:80px" min="1" />
+          </div>
         </div>
-        <div class="flex flex-col sm:flex-row sm:items-start gap-3">
-          <label class="text-sm font-semibold w-20 shrink-0 pt-2" style="color: var(--text-secondary)">标签</label>
-          <div class="flex-1">
+        <div class="form-row" style="align-items:flex-start">
+          <label class="pt-2">标签</label>
+          <div class="form-input">
             <div class="tag-input-wrapper" id="addTagsWrapper">
-              <input id="addTagInput" type="text" placeholder="输入标签后按 Enter" />
+              <input id="addTagInput" type="text" placeholder="输入后回车" />
             </div>
-            <div class="mt-3">
-              <span class="text-sm font-semibold" style="color: var(--text-secondary)">所有标签（点击插入）：</span>
-              <div id="addTagSuggestions" class="flex flex-wrap gap-2 mt-2"></div>
+            <div class="mt-2">
+              <span class="text-xs" style="color: var(--text-secondary)">已有标签：</span>
+              <div id="addTagSuggestions" class="flex flex-wrap gap-1 mt-1"></div>
             </div>
           </div>
         </div>
-        <div class="flex justify-end gap-3 mt-6">
+        <div class="flex justify-end gap-2 mt-4">
           <button type="button" id="closeAddModal" class="btn btn-ghost">取消</button>
           <button class="btn btn-dark">添加</button>
         </div>
       </form>
-      <div id="addMsg" class="text-base mt-4"></div>
+      <div id="addMsg" class="text-sm mt-2"></div>
     </div>
   </div>
 
   <!-- 编辑弹窗 -->
   <div id="editModal" class="modal-mask">
-    <div class="modal p-6 sm:p-8">
-      <h3 class="mb-5">编辑签到项</h3>
-      <form id="editForm" class="space-y-4">
+    <div class="modal p-4">
+      <h3 class="mb-3">编辑签到项</h3>
+      <form id="editForm">
         <input name="id" type="hidden" />
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">名称</label>
-          <input name="name" required placeholder="请输入签到项名称" class="flex-1" />
+        <div class="form-row">
+          <label>名称</label>
+          <input name="name" required placeholder="签到项名称" class="form-input" autocomplete="off" />
         </div>
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">签到网址</label>
-          <input name="signUrl" required placeholder="https://example.com/signin" class="flex-1" />
+        <div class="form-row">
+          <label>签到网址</label>
+          <input name="signUrl" required placeholder="https://..." class="form-input" autocomplete="off" />
         </div>
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">兑换码网址</label>
-          <input name="redeemUrl" placeholder="可选：兑换码或奖励页面网址" class="flex-1" />
+        <div class="form-row">
+          <label>兑换网址</label>
+          <input name="redeemUrl" placeholder="可选" class="form-input" autocomplete="off" />
         </div>
-        <div class="flex flex-col sm:flex-row sm:items-start gap-3">
-          <label class="text-sm font-semibold w-20 shrink-0 pt-2" style="color: var(--text-secondary)">分组</label>
-          <div class="relative flex-1">
-            <input name="groupName" id="editGroupInput" placeholder="选择或输入分组" autocomplete="off" class="w-full" />
-            <div id="editGroupDropdown" class="group-dropdown absolute top-full left-0 right-0 hidden">
-            </div>
+        <div class="form-row">
+          <label>分组</label>
+          <div class="form-input relative">
+            <input name="groupName" id="editGroupInput" placeholder="选择或输入" autocomplete="off" />
+            <div id="editGroupDropdown" class="group-dropdown absolute top-full left-0 w-full hidden"></div>
           </div>
         </div>
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-          <label class="text-sm font-semibold w-20 shrink-0" style="color: var(--text-secondary)">签到类型</label>
-          <select name="checkinType" id="editCheckinType" class="flex-1">
-            <option value="daily">每日签到</option>
-            <option value="weekly">每周签到</option>
-            <option value="monthly">每月签到</option>
-            <option value="quarterly">每季度签到</option>
-            <option value="yearly">每年签到</option>
-            <option value="custom">自定义间隔</option>
-          </select>
-          <input name="checkinInterval" id="editCheckinInterval" type="number" placeholder="间隔天数" class="flex-1" min="1" />
+        <div class="form-row">
+          <label>签到类型</label>
+          <div class="form-input flex gap-2">
+            <select name="checkinType" id="editCheckinType" class="flex-1">
+              <option value="daily">每日</option>
+              <option value="weekly">每周</option>
+              <option value="monthly">每月</option>
+              <option value="quarterly">每季度</option>
+              <option value="yearly">每年</option>
+              <option value="custom">自定义</option>
+            </select>
+            <input name="checkinInterval" id="editCheckinInterval" type="number" placeholder="天数" style="width:80px" min="1" />
+          </div>
         </div>
-        <div class="flex flex-col sm:flex-row sm:items-start gap-3">
-          <label class="text-sm font-semibold w-20 shrink-0 pt-2" style="color: var(--text-secondary)">标签</label>
-          <div class="flex-1">
+        <div class="form-row" style="align-items:flex-start">
+          <label class="pt-2">标签</label>
+          <div class="form-input">
             <div class="tag-input-wrapper" id="editTagsWrapper">
-              <input id="editTagInput" type="text" placeholder="输入标签后按 Enter" />
+              <input id="editTagInput" type="text" placeholder="输入后回车" />
             </div>
-            <div class="mt-3">
-              <span class="text-sm font-semibold" style="color: var(--text-secondary)">所有标签（点击插入）：</span>
-              <div id="editTagSuggestions" class="flex flex-wrap gap-2 mt-2"></div>
+            <div class="mt-2">
+              <span class="text-xs" style="color: var(--text-secondary)">已有标签：</span>
+              <div id="editTagSuggestions" class="flex flex-wrap gap-1 mt-1"></div>
             </div>
           </div>
         </div>
-        <div class="flex justify-end gap-3 mt-6">
+        <div class="flex justify-end gap-2 mt-4">
           <button type="button" id="editCancel" class="btn btn-ghost">取消</button>
           <button class="btn btn-dark">保存</button>
         </div>
@@ -758,13 +429,13 @@ const INDEX_HTML = `<!doctype html>
   </div>
 
   <template id="row-tpl">
-    <div class="entry-row flex flex-col sm:flex-row sm:items-center gap-4">
-      <div class="flex-1">
-        <div class="font-bold text-xl name"></div>
-        <div class="text-sm mt-2 group-line" style="color: var(--text-secondary)"></div>
-        <div class="mt-3 flex flex-wrap gap-2 tag-badges"></div>
+    <div class="entry-row flex flex-col sm:flex-row sm:items-center gap-1.5">
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold name"></div>
+        <div class="text-sm group-line" style="color: var(--text-secondary)"></div>
+        <div class="mt-1 flex flex-wrap gap-1.5 tag-badges"></div>
       </div>
-      <div class="flex items-center gap-3 action-wrap flex-wrap"></div>
+      <div class="flex items-center gap-2.5 action-wrap flex-wrap"></div>
     </div>
   </template>
 
@@ -1339,8 +1010,16 @@ const INDEX_HTML = `<!doctype html>
       state.entries.forEach(item => {
         const node = tpl.content.cloneNode(true);
         $('.name', node).textContent = item.name;
-        $('.group-line', node).textContent = (item.group_name ? ('分组：' + item.group_name) : '') +
-          (item.checkin_type ? (' | ' + getCheckinTypeLabel(item.checkin_type)) : '');
+        const groupText = item.group_name ? ('分组：' + item.group_name) : '';
+        const typeText = item.checkin_type ? getCheckinTypeLabel(item.checkin_type) : '';
+        const groupLine = $('.group-line', node);
+        if (groupText && typeText) {
+          groupLine.textContent = groupText + ' · ' + typeText;
+        } else if (groupText || typeText) {
+          groupLine.textContent = groupText || typeText;
+        } else {
+          groupLine.style.display = 'none';
+        }
 
         const badgeWrap = $('.tag-badges', node);
         (item.tags || []).forEach(t => {
