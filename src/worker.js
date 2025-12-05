@@ -7,7 +7,9 @@ const INDEX_HTML = `<!doctype html>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <title>每日签到汇总</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+  <script>tailwind.config = { corePlugins: { preflight: false } }</script>
   <style>
     :root {
         /* Paper / Ink 基础 */
@@ -85,10 +87,19 @@ const INDEX_HTML = `<!doctype html>
       box-shadow: 0 8px 24px var(--shadow);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    
+
     .card:hover {
       box-shadow: 0 12px 36px var(--shadow);
       transform: translateY(-2px);
+    }
+
+    /* 签到项分割线 */
+    .entry-row {
+      padding: 1.25rem 0;
+      border-bottom: 2px solid var(--border);
+    }
+    .entry-row:last-child {
+      border-bottom: none;
     }
     
     .chip {
@@ -598,7 +609,7 @@ const INDEX_HTML = `<!doctype html>
 
     <!-- 列表 -->
     <section class="card p-6 sm:p-8">
-      <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center justify-between" style="padding-bottom: 1.25rem; border-bottom: 2px solid var(--border)">
         <h2 class="text-base font-bold" style="color: var(--text-primary)">我的签到项</h2>
         <button id="refreshBtn" class="btn btn-ghost">刷新</button>
       </div>
@@ -747,7 +758,7 @@ const INDEX_HTML = `<!doctype html>
   </div>
 
   <template id="row-tpl">
-    <div class="flex flex-col sm:flex-row sm:items-center gap-4 py-5 border-b-2 last:border-b-0" style="border-color: var(--border)">
+    <div class="entry-row flex flex-col sm:flex-row sm:items-center gap-4">
       <div class="flex-1">
         <div class="font-bold text-xl name"></div>
         <div class="text-sm mt-2 group-line" style="color: var(--text-secondary)"></div>
@@ -805,7 +816,8 @@ const INDEX_HTML = `<!doctype html>
       theme: localStorage.getItem('theme') || 'light',
       timezone: '',
       today: '',
-      entries: [],
+      allEntries: [],  // 全量数据缓存
+      entries: [],     // 筛选后的数据
       groups: [],
       allTags: [],
       checkinTypes: [],
@@ -851,8 +863,7 @@ const INDEX_HTML = `<!doctype html>
       gcLocalClicks({ retentionDays: 10, maxDays: 30 });
       await verifyAdminToken();
       if (state.adminOK) {
-        await loadMeta();
-        await loadEntries();
+        await loadAllData();
         renderFilters();
       }
       render();
@@ -924,7 +935,7 @@ const INDEX_HTML = `<!doctype html>
 
         // Ensure meta data is loaded
         if (state.groups.length === 0 || state.allTags.length === 0) {
-          await loadMeta();
+          await loadAllData();
         }
 
         state.addTags = ['有效'];
@@ -966,7 +977,7 @@ const INDEX_HTML = `<!doctype html>
         $('#adminModal').style.display = 'none';
         setModalOpen(false);
         await verifyAdminToken();
-        if (state.adminOK) { await loadMeta(); await loadEntries(); renderFilters(); }
+        if (state.adminOK) { await loadAllData(); renderFilters(); }
         render();
       };
       $('#clearTokenBtn').onclick = () => {
@@ -988,7 +999,7 @@ const INDEX_HTML = `<!doctype html>
           if (!res.ok) throw new Error('HTTP ' + res.status);
           state.lastAutoCheckinId = null;
           $('#undoBtn').classList.add('hidden');
-          await loadEntries();
+          await loadAllData();
           render();
           clearClicks(id);
         } catch (e) { alert('撤销失败：' + e.message); }
@@ -996,7 +1007,7 @@ const INDEX_HTML = `<!doctype html>
 
       $('#refreshBtn').onclick = async () => {
         if (!state.adminOK) { alert('请先输入正确的管理口令'); return; }
-        await loadMeta(); await loadEntries(); renderFilters(); render();
+        await loadAllData(); renderFilters(); render();
       };
 
       // 新增表单 - 标签输入
@@ -1051,7 +1062,7 @@ const INDEX_HTML = `<!doctype html>
           state.addTags = [];
           renderTagInput('addTagsWrapper', 'addTags');
           $('#addCheckinInterval').style.display = 'none';
-          await loadMeta(); await loadEntries(); renderFilters(); render();
+          await loadAllData(); renderFilters(); render();
           $('#addMsg').textContent = '✅ 已添加';
           $('#addMsg').style.color = '#16a34a';
           setTimeout(() => { $('#addModal').style.display = 'none'; setModalOpen(false); }, 1500);
@@ -1164,34 +1175,61 @@ const INDEX_HTML = `<!doctype html>
       $('#today').textContent = '今天：' + state.today + '（时区：' + state.timezone + '）';
       try {
         state.clicks = JSON.parse(localStorage.getItem('clicks-' + state.today)) || {};
-      } catch { state.clicks = {}; }  
+      } catch { state.clicks = {}; }
     }
-    
-    async function loadMeta() {
-      const res = await fetch('/api/meta', { headers: { 'X-Admin-Token': state.adminToken } });
-      const data = await res.json();
-      state.groups = data.groups || []; state.allTags = data.tags || []; state.checkinTypes = data.checkinTypes || [];
-    }
-    
-    async function loadEntries() {
-      if (!state.adminOK) { state.entries = []; return; }
-      const params = new URLSearchParams();
-      if (state.selectedGroup && state.selectedGroup !== '__unchecked__') {
-        params.set('group', state.selectedGroup);
-      }
-      if (state.selectedTags.length) params.set('tags', state.selectedTags.join(','));
-      if (state.excludedTags.length) params.set('excludeTags', state.excludedTags.join(','));
-      if (state.selectedCheckinType) params.set('checkinType', state.selectedCheckinType);
-      const res = await fetch('/api/entries' + (params.toString() ? ('?' + params) : ''), {
+
+    // 合并加载：一次请求获取 entries + meta
+    async function loadAllData() {
+      if (!state.adminOK) { state.allEntries = []; state.entries = []; return; }
+      const res = await fetch('/api/data', {
         headers: { 'X-Admin-Token': state.adminToken }
       });
-      let entries = await res.json();
-      
+      const data = await res.json();
+      state.allEntries = data.entries || [];
+      state.groups = data.groups || [];
+      state.allTags = data.tags || [];
+      state.checkinTypes = data.checkinTypes || [];
+      filterEntries();
+    }
+
+    // 本地筛选，不请求服务器
+    function filterEntries() {
+      let filtered = state.allEntries;
+
+      // 分组筛选
       if (state.selectedGroup === '__unchecked__') {
-        entries = entries.filter(e => !e.checked_today);
+        filtered = filtered.filter(e => e.can_checkin);
+      } else if (state.selectedGroup) {
+        filtered = filtered.filter(e => e.group_name === state.selectedGroup);
       }
-      
-      state.entries = entries;
+
+      // 签到类型筛选
+      if (state.selectedCheckinType) {
+        filtered = filtered.filter(e => e.checkin_type === state.selectedCheckinType);
+      }
+
+      // 标签筛选（包含）
+      if (state.selectedTags.length) {
+        filtered = filtered.filter(e => {
+          const tags = e.tags || [];
+          return state.selectedTags.every(t => tags.includes(t));
+        });
+      }
+
+      // 标签筛选（排除）
+      if (state.excludedTags.length) {
+        filtered = filtered.filter(e => {
+          const tags = e.tags || [];
+          return !state.excludedTags.some(t => tags.includes(t));
+        });
+      }
+
+      state.entries = filtered;
+    }
+
+    // 兼容旧代码：loadEntries 现在只做本地筛选
+    async function loadEntries() {
+      filterEntries();
     }
 
     function renderFilters() {
@@ -1334,7 +1372,7 @@ const INDEX_HTML = `<!doctype html>
                   })
                 });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
-                await loadMeta(); await loadEntries(); renderFilters(); render();
+                await loadAllData(); renderFilters(); render();
               } catch (err) {
                 alert('移除标签失败：' + err.message);
               }
@@ -1387,12 +1425,12 @@ const INDEX_HTML = `<!doctype html>
             try {
               const res = await fetch('/api/checkin/' + item.id, { method: 'DELETE', headers: { 'X-Admin-Token': state.adminToken } });
               if (!res.ok) throw new Error('HTTP ' + res.status);
-              if (state.lastAutoCheckinId === item.id) { 
-                state.lastAutoCheckinId = null; 
-                $('#undoBtn').classList.add('hidden'); 
+              if (state.lastAutoCheckinId === item.id) {
+                state.lastAutoCheckinId = null;
+                $('#undoBtn').classList.add('hidden');
                 clearClicks(item.id);
               }
-              await loadEntries(); render();
+              await loadAllData(); render();
             } catch (e) { alert('撤销失败：' + e.message); }
           };
           actionWrap.appendChild(unBtn);
@@ -1417,7 +1455,7 @@ const INDEX_HTML = `<!doctype html>
                 headers: { 'X-Admin-Token': state.adminToken } 
               });
               if (!res.ok) throw new Error('HTTP ' + res.status);
-              await loadMeta(); await loadEntries(); renderFilters(); render();
+              await loadAllData(); renderFilters(); render();
             } catch (e) { alert('删除失败：' + e.message); }
           };
           actionWrap.appendChild(delBtn);
@@ -1436,7 +1474,7 @@ const INDEX_HTML = `<!doctype html>
 
       // Ensure meta data is loaded
       if (state.groups.length === 0 || state.allTags.length === 0) {
-        await loadMeta();
+        await loadAllData();
       }
 
       const mask = $('#editModal');
@@ -1676,7 +1714,7 @@ const INDEX_HTML = `<!doctype html>
           throw new Error(t || ('HTTP ' + res.status)); 
         }
         closeEditModal(); 
-        await loadMeta(); 
+        await loadAllData(); 
         await loadEntries(); 
         renderFilters(); 
         render();
@@ -1729,7 +1767,7 @@ const INDEX_HTML = `<!doctype html>
         if (!res.ok) throw new Error('HTTP ' + res.status);
         state.lastAutoCheckinId = id;
         $('#undoBtn').classList.remove('hidden');
-        await loadEntries(); render();
+        await loadAllData(); render();
       } catch (e) { alert('签到失败：' + e.message); }
     }
 
@@ -1871,12 +1909,54 @@ export default {
     if (method === "GET" && pathname === "/api/admin/ping") {
       return text("OK", 200);
     }
+
+    // 合并的数据接口：一次查询返回 entries + meta
+    if (method === "GET" && pathname === "/api/data") {
+      const tz = env.TIMEZONE || "UTC";
+      const today = ymdInTZ(new Date(), tz);
+
+      const sql = `
+        SELECT e.id, e.name, e.sign_url, e.redeem_url, e.group_name, e.tags, e.checkin_type, e.checkin_interval, e.last_checkin_date,
+               CASE WHEN c.id IS NULL THEN 0 ELSE 1 END AS checked_today
+        FROM entries e
+        LEFT JOIN checkins c ON c.entry_id = e.id AND c.date = ?
+        ORDER BY e.group_name IS NULL, e.group_name, e.id ASC
+      `;
+      const { results } = await env.DB.prepare(sql).bind(today).all();
+
+      // 从 entries 中提取 groups 和 tags
+      const groupSet = new Set();
+      const tagSet = new Set();
+      const entries = (results || []).map(row => {
+        if (row.group_name && row.group_name.trim()) groupSet.add(row.group_name);
+        const tags = parseTagsFromRow(row.tags);
+        tags.forEach(t => tagSet.add(t));
+        return {
+          ...row,
+          tags,
+          can_checkin: canCheckin(row, today)
+        };
+      });
+
+      const checkinTypes = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'];
+
+      return json({
+        entries,
+        groups: Array.from(groupSet).sort((a, b) => a.localeCompare(b, 'zh')),
+        tags: Array.from(tagSet).sort((a, b) => a.localeCompare(b, 'zh')),
+        checkinTypes,
+        today
+      });
+    }
+
     if (method === "GET" && pathname === "/api/meta") {
       const gsql = `SELECT DISTINCT group_name AS g FROM entries WHERE group_name IS NOT NULL AND TRIM(group_name) <> '' ORDER BY g COLLATE NOCASE`;
-      const gRes = await env.DB.prepare(gsql).all();
+      const [gRes, tRes] = await Promise.all([
+        env.DB.prepare(gsql).all(),
+        env.DB.prepare(`SELECT tags FROM entries`).all()
+      ]);
       const groups = (gRes.results || []).map(r => r.g);
 
-      const tRes = await env.DB.prepare(`SELECT tags FROM entries`).all();
       const tSet = new Set();
       (tRes.results || []).forEach(r => { parseTagsFromRow(r.tags).forEach(t => tSet.add(t)); });
 
